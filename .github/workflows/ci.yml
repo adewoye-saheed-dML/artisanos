@@ -1,0 +1,63 @@
+name: ArtisanOS CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: artisanos
+          POSTGRES_USER: artisanos
+          POSTGRES_PASSWORD: artisanos_ci_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      ARTISANOS_DATABASE_URL: postgres://artisanos:artisanos_ci_password@127.0.0.1:5432/artisanos
+      DJANGO_SECRET_KEY: ci-test-secret-key
+      DJANGO_DEBUG: "False"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend dependencies
+        run: pip install -r apps/backend/requirements.txt
+      - name: Check Django system health & pending migrations
+        working-directory: apps/backend
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+          python manage.py spectacular --validate --file /dev/null
+      - name: Run pytest suite against PostgreSQL
+        working-directory: apps/backend
+        run: pytest -v tests
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+      - name: Lint, typecheck, and build Next.js app
+        working-directory: apps/frontend
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run build

@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-ink: #1a141d;
+  --color-ink-soft: #5c535e;
+  --color-ink-faint: #756b77;
+  --color-paper: #fffdfb;
+  --color-surface: #f7f2f5;
+  --color-line: #ebe0e6;
+  --color-line-soft: #f4ecf1;
+  --color-brand: #ed596f;
+  --color-brand-button: #bd346c;
+  --color-brand-strong: #9c286f;
+  --color-brand-deep: #511441;
+  --color-plum: #240c21;
+  --color-plum-surface: #32132e;
+  --color-plum-text-soft: #d7c7d1;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    @apply antialiased selection:bg-brand-200 selection:text-plum;
+  }
+}
+
+@layer components {
+  .mezer-hero-bg {
+    background: linear-gradient(150deg, #fffdfb 0%, #fef7f9 45%, #f6ebf3 100%);
+  }
+
+  .mezer-hero-glow {
+    background: radial-gradient(
+      circle,
+      rgba(237, 89, 111, 0.14) 0%,
+      rgba(156, 40, 111, 0.05) 50%,
+      rgba(156, 40, 111, 0) 70%
+    );
+  }
+
+  .mezer-eyebrow {
+    @apply inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-brand-700;
+  }
+
+  .mezer-eyebrow-light {
+    @apply inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#ffdce6];
+  }
+}
