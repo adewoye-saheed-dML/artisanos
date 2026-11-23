@@ -3,12 +3,13 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from billing.views import PaystackWebhookView
-from core.views import HealthCheckView
+from core.views import ApiRootView, HealthCheckView
 from measurements.views import PublicFitPassportView
 from organizations.dashboard_views import DashboardSummaryView
 from organizations.views import PublicInvitationAcceptView, PublicInvitationDetailView
 
 urlpatterns = [
+    path("", ApiRootView.as_view(), name="api-root"),
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthCheckView.as_view(), name="health-check"),
     path("api/v1/locations/", include("locations.urls")),

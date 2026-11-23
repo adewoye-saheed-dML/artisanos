@@ -7,6 +7,36 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 
+class ApiRootResponseSerializer(serializers.Serializer):
+    service = serializers.CharField()
+    status = serializers.CharField()
+    health = serializers.CharField()
+    docs = serializers.CharField()
+    schema = serializers.CharField()
+    admin = serializers.CharField()
+
+
+class ApiRootView(APIView):
+    """Friendly API index at / so direct browser visits and root probes receive 200 OK."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(responses={200: ApiRootResponseSerializer})
+    def get(self, request):
+        return Response(
+            {
+                "service": "ArtisanOS API",
+                "status": "ok",
+                "health": "/api/v1/health/",
+                "docs": "/api/v1/docs/",
+                "schema": "/api/v1/schema/",
+                "admin": "/admin/",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
 class HealthFeaturesSerializer(serializers.Serializer):
     camera_measurements = serializers.BooleanField()
 

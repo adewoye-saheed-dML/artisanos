@@ -69,3 +69,8 @@ def test_platform_admin_locations_sync_endpoints():
     assert sync_res.data["total_states"] == 37
     assert sync_res.data["total_lgas"] >= 774
     assert sync_res.data["total_polling_units"] >= 50
+
+    root_res = APIClient().get("/")
+    assert root_res.status_code == 200
+    assert root_res.data["status"] == "ok"
+    assert root_res.data["health"] == "/api/v1/health/"
