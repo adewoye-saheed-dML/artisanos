@@ -1,17 +1,130 @@
-export type OrgCategory = "tailor" | "shoemaker" | "leatherworker" | "other";
+export type OrgCategory =
+  | "tailor"
+  | "shoemaker"
+  | "leatherworker"
+  | "electrician"
+  | "plumber"
+  | "carpenter"
+  | "mechanic"
+  | "welder"
+  | "painter"
+  | "ac_technician"
+  | "mason"
+  | "hair_beauty"
+  | "caterer"
+  | "phone_repair"
+  | "generator_tech"
+  | "cleaner"
+  | "other";
+
+export type AvailabilityStatus = "available" | "busy" | "offline";
+export type VerificationStatus = "unsubmitted" | "pending_review" | "approved" | "rejected";
+export type GovernmentIdType = "nin_slip" | "voters_card" | "drivers_license" | "intl_passport";
+export type VerificationDocumentType =
+  | "nin_slip"
+  | "cac_certificate"
+  | "utility_bill"
+  | "trade_certificate"
+  | "workshop_photo";
+export type EscrowStatus =
+  | "awaiting_funding"
+  | "funded_held"
+  | "work_submitted"
+  | "released"
+  | "disputed"
+  | "refunded"
+  | "cancelled";
 export type UnitSystem = "cm" | "in";
 export type MembershipRole = "owner" | "manager" | "artisan" | "sales_assistant";
+
+export interface NigerianState {
+  id: string;
+  name: string;
+  code: string;
+  geopolitical_zone: string;
+}
+
+export interface NigerianLGA {
+  id: string;
+  state: string;
+  state_name: string;
+  name: string;
+  code: string;
+}
+
+export interface NigerianWard {
+  id: string;
+  lga: string;
+  lga_name: string;
+  state_id: string;
+  state_name: string;
+  name: string;
+  code: string;
+}
+
+export interface PollingUnit {
+  id: string;
+  ward: string;
+  ward_name: string;
+  lga_id: string;
+  lga_name: string;
+  state_id: string;
+  state_name: string;
+  name: string;
+  pu_code: string;
+  landmark: string;
+  latitude: string | null;
+  longitude: string | null;
+}
+
+export interface LocationSearchResponse {
+  wards: NigerianWard[];
+  polling_units: PollingUnit[];
+}
+
+export interface LocationResolvedResponse {
+  state: NigerianState | null;
+  lga: NigerianLGA | null;
+  ward: NigerianWard | null;
+  polling_unit: PollingUnit | null;
+  landmark: string;
+  match_source: string;
+  distance_km: number | null;
+  nearby_artisan_count: number;
+}
 
 export interface Organization {
   id: string;
   name: string;
   slug: string;
   category: OrgCategory;
+  category_label?: string;
   email: string;
   phone: string;
   address: string;
   city: string;
   country: string;
+  state: string | null;
+  state_name: string | null;
+  lga: string | null;
+  lga_name: string | null;
+  ward: string | null;
+  ward_name: string | null;
+  polling_unit: string | null;
+  polling_unit_name: string | null;
+  polling_unit_code: string | null;
+  service_wards: string[];
+  service_ward_names: string[];
+  landmark: string;
+  availability_status: AvailabilityStatus;
+  available_for_callout: boolean;
+  offers_goods: boolean;
+  offers_services: boolean;
+  callout_fee: string | null;
+  years_experience: number | null;
+  skills: string[];
+  is_verified: boolean;
+  verification_status: VerificationStatus;
   currency: string;
   preferred_unit: UnitSystem;
   is_active: boolean;
@@ -33,6 +146,18 @@ export interface User {
   email: string;
   full_name: string;
   phone: string;
+  state: string | null;
+  state_name: string | null;
+  lga: string | null;
+  lga_name: string | null;
+  ward: string | null;
+  ward_name: string | null;
+  polling_unit: string | null;
+  polling_unit_name: string | null;
+  polling_unit_code: string | null;
+  landmark: string;
+  latitude: string | null;
+  longitude: string | null;
   is_platform_admin: boolean;
   created_at: string;
   memberships: MembershipSummary[];
@@ -501,9 +626,32 @@ export interface StorefrontSettings {
   organization_name: string;
   slug: string;
   category: OrgCategory;
+  category_label: string;
+  phone: string;
   city: string;
   country: string;
   currency: string;
+  state_id: string | null;
+  state_name: string | null;
+  lga_id: string | null;
+  lga_name: string | null;
+  ward_id: string | null;
+  ward_name: string | null;
+  polling_unit_id: string | null;
+  polling_unit_name: string | null;
+  polling_unit_code: string | null;
+  landmark: string;
+  service_ward_names: string[];
+  availability_status: AvailabilityStatus;
+  available_for_callout: boolean;
+  offers_goods: boolean;
+  offers_services: boolean;
+  callout_fee: string | null;
+  years_experience: number | null;
+  skills: string[];
+  is_verified: boolean;
+  verification_status: VerificationStatus;
+  cac_verified: boolean;
   headline: string;
   bio: string;
   whatsapp_number: string;
@@ -513,16 +661,31 @@ export interface StorefrontSettings {
 }
 
 export type InquiryStatus = "new" | "contacted" | "converted" | "closed";
+export type InquiryType = "work_callout" | "product_order" | "service_booking" | "general";
+export type InquiryUrgency = "normal" | "today" | "emergency";
 
 export interface StorefrontInquiry {
   id: string;
   product: string | null;
   product_name: string | null;
+  inquiry_type: InquiryType;
+  urgency: InquiryUrgency;
   buyer_name: string;
   buyer_phone: string;
   buyer_email: string;
+  customer_ward: string | null;
+  customer_ward_name: string | null;
+  customer_polling_unit: string | null;
+  customer_polling_unit_name: string | null;
+  customer_polling_unit_code: string | null;
+  customer_address: string;
+  preferred_date: string | null;
+  quantity: number;
+  budget_amount: string | null;
   message: string;
   status: InquiryStatus;
+  converted_order: string | null;
+  converted_order_number: string | null;
   created_at: string;
 }
 
@@ -649,21 +812,76 @@ export interface PlatformAdminOrgSummary {
   created_at: string;
 }
 
+export type ProximityTier =
+  | "same_polling_unit"
+  | "same_ward"
+  | "covers_ward"
+  | "same_lga"
+  | "same_state"
+  | "national";
+
 export interface MarketplaceStorefrontCard {
   organization_name: string;
   slug: string;
   category: OrgCategory;
+  category_label: string;
+  phone: string;
+  whatsapp_number: string;
+  instagram_handle: string;
   city: string;
   country: string;
+  state_id: string | null;
+  state_name: string | null;
+  lga_id: string | null;
+  lga_name: string | null;
+  ward_id: string | null;
+  ward_name: string | null;
+  polling_unit_id: string | null;
+  polling_unit_name: string | null;
+  polling_unit_code: string | null;
+  landmark: string;
+  service_ward_names: string[];
   headline: string;
   bio: string;
+  skills: string[];
+  availability_status: AvailabilityStatus;
+  available_for_callout: boolean;
+  offers_goods: boolean;
+  offers_services: boolean;
+  callout_fee: string | null;
+  currency: string;
+  years_experience: number | null;
+  is_verified: boolean;
+  verification_status: VerificationStatus;
+  cac_verified: boolean;
   published_product_count: number;
+  published_service_count: number;
+  proximity_tier: ProximityTier | null;
+  proximity_label: string | null;
+  distance_km: number | null;
 }
 
 export interface MarketplaceProductCard extends Product {
   organization_name: string;
   storefront_slug: string;
+  organization_category: OrgCategory;
+  organization_category_label: string;
   organization_city: string;
+  organization_phone: string;
+  whatsapp_number: string;
+  state_name: string | null;
+  lga_name: string | null;
+  ward_name: string | null;
+  polling_unit_name: string | null;
+  proximity_tier: ProximityTier | null;
+  proximity_label: string | null;
+  distance_km: number | null;
+}
+
+export interface MarketplaceCategoryCount {
+  code: OrgCategory;
+  label: string;
+  artisan_count: number;
 }
 
 export interface AnalyticsOverview {
@@ -702,4 +920,112 @@ export interface PaginatedResponse<T> {
   next: string | null;
   previous: string | null;
   results: T[];
+}
+
+export interface VerificationDocument {
+  id: string;
+  document_type: VerificationDocumentType;
+  document_type_label: string;
+  original_filename: string;
+  content_type: string;
+  file_size_bytes: number;
+  uploaded_by_name: string | null;
+  content_path: string;
+  created_at: string;
+}
+
+export interface ArtisanVerification {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  organization_category: string;
+  state_name: string | null;
+  ward_name: string | null;
+  polling_unit_name: string | null;
+  nin_masked: string;
+  nin_last4: string;
+  government_id_type: GovernmentIdType;
+  government_id_type_label: string;
+  cac_number: string;
+  cac_business_name: string;
+  guarantor_name: string;
+  guarantor_phone: string;
+  bank_name: string;
+  bank_account_number: string;
+  bank_account_name: string;
+  status: VerificationStatus;
+  submitted_by_email: string | null;
+  submitted_at: string;
+  reviewed_by_email: string | null;
+  reviewed_at: string | null;
+  rejection_reason: string;
+  review_notes: string;
+  documents: VerificationDocument[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationVerificationResponse {
+  status: VerificationStatus;
+  submitted: boolean;
+  verification: ArtisanVerification | null;
+}
+
+export interface EscrowEvent {
+  id: string;
+  event_type: string;
+  from_status: string;
+  to_status: EscrowStatus;
+  notes: string;
+  actor: string | null;
+  actor_name: string | null;
+  created_at: string;
+}
+
+export interface EscrowTransaction {
+  id: string;
+  reference: string;
+  organization: string;
+  organization_name: string;
+  organization_slug: string;
+  organization_category_label: string;
+  organization_phone: string;
+  organization_is_verified: boolean;
+  customer_user: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  order: string | null;
+  order_number: string | null;
+  inquiry: string | null;
+  job_title: string;
+  job_description: string;
+  total_amount: string;
+  materials_advance_pct: number;
+  materials_advance_amount: string;
+  held_in_escrow_amount: string;
+  platform_fee_amount: string;
+  artisan_payout_amount: string;
+  currency: string;
+  status: EscrowStatus;
+  payment_provider: string;
+  artisan_completion_notes: string;
+  dispute_reason: string;
+  resolution_notes: string;
+  funded_at: string | null;
+  work_submitted_at: string | null;
+  released_at: string | null;
+  disputed_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  viewer_role: "customer" | "artisan" | "admin" | "guest";
+  events: EscrowEvent[];
+}
+
+export interface EscrowFundResponse {
+  escrow: EscrowTransaction;
+  completion_pin: string;
+  detail: string;
 }

@@ -34,6 +34,38 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True, db_index=True)
     full_name = models.CharField(max_length=150)
     phone = models.CharField(max_length=32, blank=True, default="")
+    # Hyper-local Nigerian location for every user (customers & artisans alike)
+    state = models.ForeignKey(
+        "locations.NigerianState",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    lga = models.ForeignKey(
+        "locations.NigerianLGA",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    ward = models.ForeignKey(
+        "locations.NigerianWard",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    polling_unit = models.ForeignKey(
+        "locations.PollingUnit",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    landmark = models.CharField(max_length=200, blank=True, default="")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_platform_admin = models.BooleanField(default=False)

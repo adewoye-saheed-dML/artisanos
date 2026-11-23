@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     # ArtisanOS apps
     "core",
+    "locations",
     "accounts",
     "organizations",
     "customers",
@@ -53,6 +54,7 @@ INSTALLED_APPS = [
     "catalog",
     "notifications",
     "billing",
+    "escrow",
 ]
 
 MIDDLEWARE = [
@@ -190,6 +192,10 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
         "OrganizationCategoryEnum": "organizations.models.Organization.Category",
+        "OrganizationAvailabilityEnum": "organizations.models.Organization.AvailabilityStatus",
+        "OrganizationVerificationStatusEnum": "organizations.models.Organization.VerificationStatus",
+        "GovernmentIdTypeEnum": "organizations.models.ArtisanVerification.GovernmentIdType",
+        "VerificationDocumentTypeEnum": "organizations.models.VerificationDocument.DocumentType",
         "UnitSystemEnum": "organizations.models.Organization.UnitSystem",
         "MembershipRoleEnum": "organizations.models.Membership.Role",
         "MembershipStatusEnum": "organizations.models.Membership.Status",
@@ -204,8 +210,11 @@ SPECTACULAR_SETTINGS = {
         "AppointmentStatusEnum": "appointments.models.Appointment.Status",
         "ProductStatusEnum": "catalog.models.Product.Status",
         "StorefrontInquiryStatusEnum": "catalog.models.StorefrontInquiry.Status",
+        "StorefrontInquiryTypeEnum": "catalog.models.StorefrontInquiry.InquiryType",
+        "StorefrontInquiryUrgencyEnum": "catalog.models.StorefrontInquiry.Urgency",
         "SubscriptionStatusEnum": "billing.models.Subscription.Status",
         "PaymentTransactionStatusEnum": "billing.models.PaymentTransaction.Status",
+        "EscrowStatusEnum": "escrow.models.EscrowTransaction.Status",
     },
 }
 

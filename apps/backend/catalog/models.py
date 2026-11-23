@@ -150,13 +150,24 @@ class InventoryMovement(TenantOwnedModel):
 
 
 class StorefrontInquiry(TenantOwnedModel):
-    """Public buyer inquiry submitted via an artisan's public storefront."""
+    """Public buyer inquiry, goods order request, or on-site work call-out submitted via a storefront."""
 
     class Status(models.TextChoices):
         NEW = "new", "New"
         CONTACTED = "contacted", "Contacted"
         CONVERTED = "converted", "Converted to Order"
         CLOSED = "closed", "Closed"
+
+    class InquiryType(models.TextChoices):
+        WORK_CALLOUT = "work_callout", "Call for Work / On-Site Job"
+        PRODUCT_ORDER = "product_order", "Buy Product / Goods"
+        SERVICE_BOOKING = "service_booking", "Book Service"
+        GENERAL = "general", "General Inquiry"
+
+    class Urgency(models.TextChoices):
+        NORMAL = "normal", "Flexible / Scheduled"
+        TODAY = "today", "Needed Today"
+        EMERGENCY = "emergency", "Urgent / Immediate Call-Out"
 
     product = models.ForeignKey(
         Product,
@@ -165,9 +176,38 @@ class StorefrontInquiry(TenantOwnedModel):
         blank=True,
         related_name="inquiries",
     )
+    inquiry_type = models.CharField(
+        max_length=24,
+        choices=InquiryType.choices,
+        default=InquiryType.GENERAL,
+        db_index=True,
+    )
+    urgency = models.CharField(
+        max_length=20,
+        choices=Urgency.choices,
+        default=Urgency.NORMAL,
+    )
     buyer_name = models.CharField(max_length=150)
     buyer_phone = models.CharField(max_length=32)
     buyer_email = models.EmailField(blank=True, default="")
+    customer_ward = models.ForeignKey(
+        "locations.NigerianWard",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storefront_inquiries",
+    )
+    customer_polling_unit = models.ForeignKey(
+        "locations.PollingUnit",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storefront_inquiries",
+    )
+    customer_address = models.CharField(max_length=255, blank=True, default="")
+    preferred_date = models.DateField(null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    budget_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     message = models.TextField()
     status = models.CharField(
         max_length=20,
@@ -175,12 +215,20 @@ class StorefrontInquiry(TenantOwnedModel):
         default=Status.NEW,
         db_index=True,
     )
+    converted_order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="source_inquiries",
+    )
 
     class Meta:
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["organization", "status", "created_at"]),
+            models.Index(fields=["organization", "inquiry_type", "status"]),
         ]
 
     def __str__(self) -> str:
-        return f"Inquiry from {self.buyer_name} ({self.organization.name})"
+        return f"Inquiry ({self.inquiry_type}) from {self.buyer_name} ({self.organization.name})"

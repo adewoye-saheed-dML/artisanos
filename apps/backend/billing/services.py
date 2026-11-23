@@ -163,6 +163,31 @@ def process_paystack_webhook_event(payload: dict) -> dict:
     if event != "charge.success" or not reference:
         return {"processed": False, "detail": "Ignored non-charge.success event."}
 
+    # Handle customer Escrow funding references (ESC-...)
+    if str(reference).startswith("ESC-"):
+        from escrow.models import EscrowTransaction
+        from escrow.services import fund_escrow_transaction
+
+        escrow = (
+            EscrowTransaction.objects.select_for_update()
+            .select_related("organization")
+            .filter(reference=reference)
+            .first()
+        )
+        if not escrow:
+            raise exceptions.NotFound("Escrow transaction reference not found.")
+        if escrow.status == EscrowTransaction.Status.FUNDED_HELD:
+            return {"processed": True, "detail": "Escrow already funded (idempotent)."}
+
+        paid_minor = data.get("amount")
+        paid_currency = (data.get("currency") or "").upper()
+        expected_minor = int((escrow.total_amount * Decimal("100")).quantize(Decimal("1")))
+        if paid_minor != expected_minor or paid_currency != escrow.currency.upper():
+            raise exceptions.ValidationError("Webhook escrow payment amount or currency mismatch.")
+
+        fund_escrow_transaction(escrow=escrow, actor=None, via_webhook=True, provider_payload=payload)
+        return {"processed": True, "detail": f"Funded escrow {escrow.reference}."}
+
     tx = (
         PaymentTransaction.objects.select_for_update(of=("self",))
         .select_related("organization", "subscription", "plan")

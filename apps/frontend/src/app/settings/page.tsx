@@ -1,19 +1,27 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardCopy, MailPlus, Shield, Users } from "lucide-react";
+import { ClipboardCopy, MailPlus, MapPin, Shield, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  NigeriaLocationPicker,
+  type NigeriaLocationValue,
+} from "@/components/locations/nigeria-location-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/form-controls";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
+import { ARTISAN_CATEGORIES } from "@/lib/artisans";
 import { formatDateTime } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type {
+  AvailabilityStatus,
   MembershipRole,
+  NigerianWard,
+  OrgCategory,
   Organization,
   OrganizationInvitation,
   OrganizationMember,
@@ -24,18 +32,34 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
 
   const [name, setName] = useState("");
+  const [category, setCategory] = useState<OrgCategory>("tailor");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState("Nigeria");
+  const [location, setLocation] = useState<NigeriaLocationValue>({
+    stateId: "",
+    lgaId: "",
+    wardId: "",
+    pollingUnitId: "",
+  });
+  const [serviceWardIds, setServiceWardIds] = useState<string[]>([]);
+  const [landmark, setLandmark] = useState("");
+  const [availabilityStatus, setAvailabilityStatus] = useState<AvailabilityStatus>("available");
+  const [availableForCallout, setAvailableForCallout] = useState(true);
+  const [offersGoods, setOffersGoods] = useState(true);
+  const [offersServices, setOffersServices] = useState(true);
+  const [calloutFee, setCalloutFee] = useState("");
+  const [yearsExperience, setYearsExperience] = useState("");
+  const [skillsText, setSkillsText] = useState("");
   const [currency, setCurrency] = useState("NGN");
   const [preferredUnit, setPreferredUnit] = useState<"cm" | "in">("cm");
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
 
   const [newOrgName, setNewOrgName] = useState("");
-  const [newOrgCategory, setNewOrgCategory] = useState("tailor");
+  const [newOrgCategory, setNewOrgCategory] = useState<OrgCategory>("tailor");
   const [newOrgError, setNewOrgError] = useState("");
 
   // Team invitation state
@@ -47,15 +71,44 @@ export default function SettingsPage() {
   useEffect(() => {
     if (activeOrganization) {
       setName(activeOrganization.name);
+      setCategory(activeOrganization.category);
       setPhone(activeOrganization.phone);
       setEmail(activeOrganization.email);
       setAddress(activeOrganization.address);
       setCity(activeOrganization.city);
-      setCountry(activeOrganization.country);
+      setCountry(activeOrganization.country || "Nigeria");
+      setLocation({
+        stateId: activeOrganization.state || "",
+        lgaId: activeOrganization.lga || "",
+        wardId: activeOrganization.ward || "",
+        pollingUnitId: activeOrganization.polling_unit || "",
+      });
+      setServiceWardIds(activeOrganization.service_wards || []);
+      setLandmark(activeOrganization.landmark || "");
+      setAvailabilityStatus(activeOrganization.availability_status || "available");
+      setAvailableForCallout(activeOrganization.available_for_callout ?? true);
+      setOffersGoods(activeOrganization.offers_goods ?? true);
+      setOffersServices(activeOrganization.offers_services ?? true);
+      setCalloutFee(activeOrganization.callout_fee || "");
+      setYearsExperience(
+        activeOrganization.years_experience !== null && activeOrganization.years_experience !== undefined
+          ? String(activeOrganization.years_experience)
+          : ""
+      );
+      setSkillsText((activeOrganization.skills || []).join(", "));
       setCurrency(activeOrganization.currency);
       setPreferredUnit(activeOrganization.preferred_unit);
     }
   }, [activeOrganization]);
+
+  const { data: stateWards } = useQuery({
+    queryKey: ["ng-state-wards", location.stateId],
+    queryFn: () =>
+      apiRequest<NigerianWard[]>(`/locations/wards/?state=${location.stateId}`, {
+        skipOrgHeader: true,
+      }),
+    enabled: !!location.stateId,
+  });
 
   const isOwner = activeMembership?.role === "owner";
   const canEdit = activeMembership?.role === "owner" || activeMembership?.role === "manager";
@@ -75,23 +128,42 @@ export default function SettingsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: () =>
-      apiRequest<Organization>(`/organizations/${activeOrganization?.id}/`, {
+    mutationFn: () => {
+      const skills = skillsText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return apiRequest<Organization>(`/organizations/${activeOrganization?.id}/`, {
         method: "PATCH",
         body: JSON.stringify({
           name,
+          category,
           phone,
           email,
           address,
           city,
           country,
+          state: location.stateId || null,
+          lga: location.lgaId || null,
+          ward: location.wardId || null,
+          polling_unit: location.pollingUnitId || null,
+          service_wards: serviceWardIds,
+          landmark,
+          availability_status: availabilityStatus,
+          available_for_callout: availableForCallout,
+          offers_goods: offersGoods,
+          offers_services: offersServices,
+          callout_fee: calloutFee.trim() ? calloutFee.trim() : null,
+          years_experience: yearsExperience.trim() ? Number(yearsExperience) : null,
+          skills,
           currency: currency.toUpperCase(),
           preferred_unit: preferredUnit,
         }),
-      }),
+      });
+    },
     onSuccess: async () => {
       setSaveError("");
-      setSaveMessage("Workspace settings saved.");
+      setSaveMessage("Workspace profile, location & availability saved.");
       await refreshUser();
     },
     onError: (err) => {
@@ -423,16 +495,184 @@ export default function SettingsPage() {
                   <Input id="org-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} />
                 </div>
                 <div>
-                  <Label htmlFor="org-email">Business email</Label>
-                  <Input id="org-email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!canEdit} />
+                  <Label htmlFor="org-category">Primary trade / craft</Label>
+                  <Select
+                    id="org-category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as OrgCategory)}
+                    disabled={!canEdit}
+                  >
+                    {ARTISAN_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="org-phone">Phone</Label>
+                  <Label htmlFor="org-email">Business email</Label>
+                  <Input id="org-email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={!canEdit} />
+                </div>
+                <div>
+                  <Label htmlFor="org-phone">Direct call / WhatsApp phone</Label>
                   <Input id="org-phone" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!canEdit} />
                 </div>
+              </div>
+
+              {/* Nigerian Hyper-Local Location Section */}
+              <div className="space-y-3 rounded-mezer-sm border border-line bg-surface p-4">
+                <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-plum">
+                  <MapPin className="h-3.5 w-3.5 text-brand-700" />
+                  Hyper-Local Nigerian Location (State → LGA → Ward → Polling Unit)
+                </div>
+                <NigeriaLocationPicker
+                  value={location}
+                  onChange={setLocation}
+                  allowCreateNew
+                  disabled={!canEdit}
+                  idPrefix="settings-loc"
+                />
+                <div>
+                  <Label htmlFor="org-landmark">Nearest street / junction / landmark</Label>
+                  <Input
+                    id="org-landmark"
+                    className="bg-white"
+                    placeholder="e.g. Beside Allen Roundabout Plaza, Ikeja"
+                    value={landmark}
+                    onChange={(e) => setLandmark(e.target.value)}
+                    disabled={!canEdit}
+                  />
+                </div>
+
+                {stateWards && stateWards.length > 0 && (
+                  <div>
+                    <Label>Extra Wards you cover for on-site work (optional)</Label>
+                    <div className="mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-xl border border-line-soft bg-white p-2.5">
+                      {stateWards
+                        .filter((w) => w.id !== location.wardId)
+                        .map((w) => {
+                          const checked = serviceWardIds.includes(w.id);
+                          return (
+                            <label
+                              key={w.id}
+                              className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                                checked
+                                  ? "border-brand-500 bg-surface-blush text-brand-700"
+                                  : "border-line-soft bg-surface text-ink-soft"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                disabled={!canEdit}
+                                className="accent-brand-700"
+                                checked={checked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setServiceWardIds((prev) => [...prev, w.id]);
+                                  } else {
+                                    setServiceWardIds((prev) => prev.filter((id) => id !== w.id));
+                                  }
+                                }}
+                              />
+                              {w.name} ({w.lga_name})
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Availability, Call-Out & Skills */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Label htmlFor="org-avail">Work availability</Label>
+                  <Select
+                    id="org-avail"
+                    value={availabilityStatus}
+                    onChange={(e) => setAvailabilityStatus(e.target.value as AvailabilityStatus)}
+                    disabled={!canEdit}
+                  >
+                    <option value="available">Available for Work</option>
+                    <option value="busy">Busy / Limited Slots</option>
+                    <option value="offline">Offline</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="org-callout-fee">Starting call-out fee ({currency})</Label>
+                  <Input
+                    id="org-callout-fee"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 4000"
+                    value={calloutFee}
+                    onChange={(e) => setCalloutFee(e.target.value)}
+                    disabled={!canEdit}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="org-years">Years of experience</Label>
+                  <Input
+                    id="org-years"
+                    type="number"
+                    min="0"
+                    max="80"
+                    placeholder="e.g. 8"
+                    value={yearsExperience}
+                    onChange={(e) => setYearsExperience(e.target.value)}
+                    disabled={!canEdit}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="org-skills">Skills &amp; specialties (comma-separated)</Label>
+                <Input
+                  id="org-skills"
+                  placeholder="e.g. Solar Inverter, House Wiring, Emergency Faults"
+                  value={skillsText}
+                  onChange={(e) => setSkillsText(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-5 text-sm font-semibold text-plum">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-700"
+                    checked={availableForCallout}
+                    onChange={(e) => setAvailableForCallout(e.target.checked)}
+                    disabled={!canEdit}
+                  />
+                  Accepts on-site / home call-outs
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-700"
+                    checked={offersGoods}
+                    onChange={(e) => setOffersGoods(e.target.checked)}
+                    disabled={!canEdit}
+                  />
+                  Sells physical goods
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="accent-brand-700"
+                    checked={offersServices}
+                    onChange={(e) => setOffersServices(e.target.checked)}
+                    disabled={!canEdit}
+                  />
+                  Offers trade / custom services
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
                 <div>
                   <Label htmlFor="org-currency">Currency</Label>
                   <Input
@@ -455,21 +695,14 @@ export default function SettingsPage() {
                     <option value="in">Inches (in)</option>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="org-city">City</Label>
+                  <Label htmlFor="org-city">City / town</Label>
                   <Input id="org-city" value={city} onChange={(e) => setCity(e.target.value)} disabled={!canEdit} />
-                </div>
-                <div>
-                  <Label htmlFor="org-country">Country</Label>
-                  <Input id="org-country" value={country} onChange={(e) => setCountry(e.target.value)} disabled={!canEdit} />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="org-address">Address</Label>
+                <Label htmlFor="org-address">Full workshop address</Label>
                 <Textarea id="org-address" rows={2} value={address} onChange={(e) => setAddress(e.target.value)} disabled={!canEdit} />
               </div>
 
@@ -507,12 +740,13 @@ export default function SettingsPage() {
                 <Select
                   id="new-org-cat"
                   value={newOrgCategory}
-                  onChange={(e) => setNewOrgCategory(e.target.value)}
+                  onChange={(e) => setNewOrgCategory(e.target.value as OrgCategory)}
                 >
-                  <option value="tailor">Tailor</option>
-                  <option value="shoemaker">Shoemaker</option>
-                  <option value="leatherworker">Leatherworker</option>
-                  <option value="other">Other</option>
+                  {ARTISAN_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
                 </Select>
               </div>
               <Button

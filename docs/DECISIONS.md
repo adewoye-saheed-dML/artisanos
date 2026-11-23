@@ -15,3 +15,7 @@
 ## ADR-004: Configurable Versioned Measurement Templates
 - **Decision**: Represent measurement schemas as `MeasurementTemplate` -> `MeasurementTemplateVersion` -> `MeasurementField` rows instead of garment-specific columns on a table.
 - **Rationale**: Allows tailoring, shoemaking, leatherwork, and custom artisan templates to share the exact same persistence, validation, and UI form engine.
+
+## ADR-005: All-Artisan Expansion & Hyper-Local Nigerian Ward / Polling Unit Discovery
+- **Decision**: Model Nigeria's 4-tier INEC administrative hierarchy (`NigerianState` -> `NigerianLGA` -> `NigerianWard` -> `PollingUnit`) in a dedicated `locations` app, expand `Organization.Category` to 17 artisan trades/crafts, and rank nearby searches hierarchically (`same_polling_unit` -> `same_ward` -> `covers_ward` via `service_wards` -> `same_lga` -> `same_state` with Haversine km tie-breaking).
+- **Rationale**: Polling Units pinpoint street corners, markets, estates, and junctions familiar across Nigeria, enabling customers to find and call artisans right down the street while scaling cleanly to full INEC datasets via `manage.py seed_nigeria_locations --from-json`.

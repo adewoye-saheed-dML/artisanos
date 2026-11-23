@@ -41,6 +41,15 @@ const STATUS_STYLE_MAP: Record<string, string> = {
   refunded: "bg-amber-50 text-amber-800 border-amber-200",
   trialing: "bg-brand-50 text-brand-700 border-brand-200",
   past_due: "bg-red-50 text-red-700 border-red-200",
+  unsubmitted: "bg-surface text-ink-soft border-line",
+  pending_review: "bg-amber-50 text-amber-800 border-amber-200",
+  approved: "bg-emerald-50 text-emerald-800 border-emerald-200",
+  rejected: "bg-red-50 text-red-700 border-red-200",
+  awaiting_funding: "bg-amber-50 text-amber-800 border-amber-200",
+  funded_held: "bg-brand-100/80 text-brand-900 border-brand-300",
+  work_submitted: "bg-purple-50 text-purple-800 border-purple-200",
+  released: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  disputed: "bg-red-100 text-red-800 border-red-300",
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {

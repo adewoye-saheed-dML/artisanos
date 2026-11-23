@@ -11,6 +11,7 @@ from organizations.views import PublicInvitationAcceptView, PublicInvitationDeta
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/v1/health/", HealthCheckView.as_view(), name="health-check"),
+    path("api/v1/locations/", include("locations.urls")),
     path("api/v1/schema/", SpectacularAPIView.as_view(), name="api-schema"),
     path("api/v1/docs/", SpectacularSwaggerView.as_view(url_name="api-schema"), name="api-docs"),
     path("api/v1/auth/", include("accounts.urls")),
@@ -40,6 +41,7 @@ urlpatterns = [
     path("api/v1/marketplace/", include("catalog.marketplace_urls")),
     path("api/v1/notifications/", include("notifications.urls")),
     path("api/v1/subscriptions/", include("billing.urls")),
+    path("api/v1/escrow/", include("escrow.urls")),
     path("api/v1/webhooks/paystack/", PaystackWebhookView.as_view(), name="paystack-webhook"),
     path("api/v1/platform-admin/", include("billing.admin_urls")),
 ]

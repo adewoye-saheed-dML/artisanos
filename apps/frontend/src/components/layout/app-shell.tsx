@@ -7,17 +7,20 @@ import {
   Building2,
   Calendar,
   ClipboardList,
+  Compass,
   CreditCard,
   Kanban,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   Ruler,
-  Scissors,
   Settings,
   ShieldAlert,
+  ShieldCheck,
   ShoppingBag,
   Users,
+  Wrench,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Label, Select } from "@/components/ui/form-controls";
 import { apiRequest } from "@/lib/api-client";
+import { ARTISAN_CATEGORIES, getCategoryLabel } from "@/lib/artisans";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type { NotificationListResponse } from "@/types/api";
@@ -35,15 +39,18 @@ import type { NotificationListResponse } from "@/types/api";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Customers", icon: Users },
-  { href: "/orders", label: "Orders", icon: ClipboardList },
+  { href: "/orders", label: "Orders & Jobs", icon: ClipboardList },
   { href: "/production", label: "Production", icon: Kanban },
   { href: "/appointments", label: "Appointments", icon: Calendar },
-  { href: "/products", label: "Products & Store", icon: ShoppingBag },
+  { href: "/products", label: "Goods, Store & Calls", icon: ShoppingBag },
+  { href: "/escrow", label: "Escrow Protection", icon: Lock },
+  { href: "/verification", label: "KYC Verification", icon: ShieldCheck },
+  { href: "/marketplace", label: "Nearby Marketplace", icon: Compass },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/templates", label: "Templates", icon: Ruler },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/billing", label: "Billing & Plans", icon: CreditCard },
-  { href: "/settings", label: "Workspace", icon: Settings },
+  { href: "/settings", label: "Workspace & Ward", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -146,10 +153,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                     value={orgCategory}
                     onChange={(e) => setOrgCategory(e.target.value)}
                   >
-                    <option value="tailor">Tailor</option>
-                    <option value="shoemaker">Shoemaker</option>
-                    <option value="leatherworker">Leatherworker</option>
-                    <option value="other">Other</option>
+                    {ARTISAN_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
                   </Select>
                 </div>
                 <div>
@@ -177,11 +185,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div>
         <Link href="/" className="flex items-center gap-2.5 px-2 pb-6">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
-            <Scissors className="h-4 w-4" />
+            <Wrench className="h-4 w-4" />
           </div>
           <div>
             <div className="text-base font-extrabold tracking-tight text-white">ArtisanOS</div>
-            <div className="text-[11px] font-medium text-plum-soft">Fit &amp; Order Studio</div>
+            <div className="text-[11px] font-medium text-plum-soft">Artisan Business OS</div>
           </div>
         </Link>
 
@@ -202,10 +210,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </option>
             ))}
           </Select>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-plum-soft">
-            <span className="capitalize">{activeOrganization.category}</span>
-            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#ffdce6]">
-              {activeOrganization.currency} · {activeOrganization.preferred_unit}
+          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-plum-soft">
+            <span className="truncate">{getCategoryLabel(activeOrganization.category)}</span>
+            <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#ffdce6]">
+              {activeOrganization.ward_name || activeOrganization.currency}
             </span>
           </div>
         </div>
@@ -291,7 +299,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-paper/90 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
-            <Scissors className="h-4 w-4" />
+            <Wrench className="h-4 w-4" />
           </div>
           <div>
             <div className="text-sm font-bold text-plum">{activeOrganization.name}</div>

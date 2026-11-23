@@ -12,7 +12,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.authentication import clear_auth_cookies, enforce_csrf, set_auth_cookies
 
-from .serializers import LoginSerializer, PasswordResetRequestSerializer, RegisterSerializer, UserSerializer
+from locations.services import ensure_ward_and_polling_unit
+from organizations.services import resolve_nigerian_location_hierarchy
+
+from .serializers import (
+    LoginSerializer,
+    PasswordResetRequestSerializer,
+    RegisterSerializer,
+    UserLocationUpdateSerializer,
+    UserSerializer,
+)
 
 
 class CsrfResponseSerializer(serializers.Serializer):
@@ -133,7 +142,7 @@ class LogoutView(APIView):
 
 
 class MeView(APIView):
-    """Return current authenticated user and active memberships."""
+    """Return or update the current authenticated user's profile and Nigerian Ward/Polling Unit."""
 
     permission_classes = [IsAuthenticated]
 
@@ -141,6 +150,65 @@ class MeView(APIView):
     def get(self, request):
         get_token(request)
         return Response({"user": UserSerializer(request.user).data})
+
+    @extend_schema(request=UserLocationUpdateSerializer, responses={200: AuthUserResponseSerializer})
+    def patch(self, request):
+        serializer = UserLocationUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        state, lga, ward, pu = resolve_nigerian_location_hierarchy(
+            state=data.get("state"),
+            lga=data.get("lga"),
+            ward=data.get("ward"),
+            polling_unit=data.get("polling_unit"),
+        )
+        ward_name = data.get("ward_name", "").strip()
+        pu_name = data.get("polling_unit_name", "").strip()
+        if lga is not None and (ward is None or (pu is None and pu_name)):
+            if ward is not None and pu_name:
+                ward, pu = ensure_ward_and_polling_unit(
+                    lga=lga,
+                    ward_name=ward.name,
+                    polling_unit_name=pu_name,
+                    landmark=data.get("landmark", ""),
+                    latitude=data.get("latitude"),
+                    longitude=data.get("longitude"),
+                )
+            elif ward_name:
+                ward, pu = ensure_ward_and_polling_unit(
+                    lga=lga,
+                    ward_name=ward_name,
+                    polling_unit_name=pu_name,
+                    landmark=data.get("landmark", ""),
+                    latitude=data.get("latitude"),
+                    longitude=data.get("longitude"),
+                )
+
+        user = request.user
+        user.state = state
+        user.lga = lga
+        user.ward = ward
+        user.polling_unit = pu
+        if "landmark" in data:
+            user.landmark = data["landmark"].strip()
+        if "latitude" in data:
+            user.latitude = data["latitude"]
+        if "longitude" in data:
+            user.longitude = data["longitude"]
+        user.save(
+            update_fields=[
+                "state",
+                "lga",
+                "ward",
+                "polling_unit",
+                "landmark",
+                "latitude",
+                "longitude",
+                "updated_at",
+            ]
+        )
+        return Response({"user": UserSerializer(user).data})
 
 
 class PasswordResetRequestView(APIView):

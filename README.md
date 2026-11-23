@@ -44,7 +44,10 @@ pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_templates
 python manage.py seed_plans
-# Optional: seed realistic, clearly labeled demo workspace & sample records
+# Load ALL ~176,846 real Nigerian INEC Polling Units, 8,809 Wards, 774 LGAs & 37 States (+ GPS coordinates):
+python manage.py sync_inec_polling_units
+# (Or offline baseline only: python manage.py seed_nigeria_locations)
+# Optional: seed clearly labeled sample workspaces
 python manage.py seed_demo_data
 python manage.py runserver 0.0.0.0:8000
 ```

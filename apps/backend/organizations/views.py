@@ -1,9 +1,11 @@
+from django.http import FileResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import exceptions, mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,8 +15,17 @@ from accounts.models import User
 from accounts.serializers import UserSerializer
 from core.authentication import set_auth_cookies
 
-from .models import Membership, Organization, OrganizationInvitation
+from .kyc_services import submit_artisan_kyc, upload_verification_document
+from .models import (
+    ArtisanVerification,
+    Membership,
+    Organization,
+    OrganizationInvitation,
+    VerificationDocument,
+)
 from .serializers import (
+    ArtisanVerificationSerializer,
+    ArtisanVerificationSubmitSerializer,
     MembershipMemberSerializer,
     MembershipUpdateSerializer,
     OrganizationCreateSerializer,
@@ -24,6 +35,8 @@ from .serializers import (
     OrganizationSerializer,
     PublicInvitationAcceptSerializer,
     PublicInvitationDetailSerializer,
+    VerificationDocumentSerializer,
+    VerificationDocumentUploadSerializer,
 )
 from .services import (
     accept_invitation,
@@ -48,11 +61,16 @@ class OrganizationViewSet(
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return Organization.objects.none()
-        return Organization.objects.filter(
-            memberships__user=self.request.user,
-            memberships__status=Membership.Status.ACTIVE,
-            is_active=True,
-        ).distinct()
+        return (
+            Organization.objects.select_related("state", "lga", "ward", "polling_unit")
+            .prefetch_related("service_wards")
+            .filter(
+                memberships__user=self.request.user,
+                memberships__status=Membership.Status.ACTIVE,
+                is_active=True,
+            )
+            .distinct()
+        )
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -161,6 +179,123 @@ class OrganizationViewSet(
         invite.status = OrganizationInvitation.Status.REVOKED
         invite.save(update_fields=["status", "updated_at"])
         return Response(OrganizationInvitationSerializer(invite).data)
+
+    @extend_schema(
+        request=ArtisanVerificationSubmitSerializer,
+        responses={200: ArtisanVerificationSerializer},
+    )
+    @action(detail=True, methods=["get", "post"], url_path="verification")
+    def verification(self, request, pk=None):
+        org = self.get_object()
+        if request.method == "GET":
+            kyc = (
+                ArtisanVerification.objects.select_related(
+                    "organization",
+                    "organization__state",
+                    "organization__ward",
+                    "organization__polling_unit",
+                    "submitted_by",
+                    "reviewed_by",
+                )
+                .prefetch_related("documents__uploaded_by")
+                .filter(organization=org)
+                .first()
+            )
+            if not kyc:
+                return Response(
+                    {"status": org.verification_status, "submitted": False, "verification": None},
+                    status=status.HTTP_200_OK,
+                )
+            return Response(
+                {
+                    "status": kyc.status,
+                    "submitted": True,
+                    "verification": ArtisanVerificationSerializer(kyc).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        membership = Membership.objects.filter(
+            user=request.user,
+            organization=org,
+            status=Membership.Status.ACTIVE,
+        ).first()
+        if not membership or membership.role not in {Membership.Role.OWNER, Membership.Role.MANAGER}:
+            raise exceptions.PermissionDenied("Only organization owners or managers can submit KYC verification.")
+
+        serializer = ArtisanVerificationSubmitSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        kyc = submit_artisan_kyc(
+            organization=org,
+            submitted_by=request.user,
+            **serializer.validated_data,
+        )
+        return Response(
+            {
+                "status": kyc.status,
+                "submitted": True,
+                "verification": ArtisanVerificationSerializer(kyc).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @extend_schema(
+        request=VerificationDocumentUploadSerializer,
+        responses={201: VerificationDocumentSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="verification/documents",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def verification_documents(self, request, pk=None):
+        org = self.get_object()
+        membership = Membership.objects.filter(
+            user=request.user,
+            organization=org,
+            status=Membership.Status.ACTIVE,
+        ).first()
+        if not membership or membership.role not in {Membership.Role.OWNER, Membership.Role.MANAGER}:
+            raise exceptions.PermissionDenied("Only owners or managers can upload KYC documents.")
+
+        serializer = VerificationDocumentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        doc = upload_verification_document(
+            organization=org,
+            uploaded_by=request.user,
+            document_type=serializer.validated_data["document_type"],
+            uploaded_file=serializer.validated_data["file"],
+        )
+        return Response(VerificationDocumentSerializer(doc).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("doc_id", OpenApiTypes.UUID, OpenApiParameter.PATH)],
+        responses={200: OpenApiTypes.BINARY},
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"verification/documents/(?P<doc_id>[^/.]+)/content",
+    )
+    def verification_document_content(self, request, pk=None, doc_id=None):
+        # Allow org owner/manager OR platform admin to inspect KYC documents securely
+        if request.user.is_platform_admin:
+            org = get_object_or_404(Organization, id=pk)
+        else:
+            org = self.get_object()
+            membership = Membership.objects.filter(
+                user=request.user,
+                organization=org,
+                status=Membership.Status.ACTIVE,
+            ).first()
+            if not membership or membership.role not in {Membership.Role.OWNER, Membership.Role.MANAGER}:
+                raise exceptions.PermissionDenied("Only owners, managers, or platform admins can view KYC files.")
+
+        doc = get_object_or_404(VerificationDocument, id=doc_id, organization=org)
+        if not doc.file:
+            raise exceptions.NotFound("Document file not found.")
+        return FileResponse(doc.file.open("rb"), content_type=doc.content_type)
 
 
 class PublicInvitationDetailView(APIView):

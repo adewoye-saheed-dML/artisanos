@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Scissors } from "lucide-react";
+import { ArrowLeft, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -36,20 +36,38 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      router.replace("/dashboard");
+      if (user.memberships.length > 0) {
+        router.replace("/dashboard");
+      } else {
+        const params = new URLSearchParams();
+        if (user.state) params.set("state", user.state);
+        if (user.lga) params.set("lga", user.lga);
+        if (user.ward) params.set("ward", user.ward);
+        if (user.polling_unit) params.set("polling_unit", user.polling_unit);
+        router.replace(`/marketplace${params.toString() ? `?${params.toString()}` : ""}`);
+      }
     }
   }, [user, router]);
 
   async function onSubmit(values: LoginValues) {
     setServerError("");
     try {
-      await apiRequest("/auth/login/", {
+      const res = await apiRequest<{ user: { memberships: unknown[]; state?: string | null; lga?: string | null; ward?: string | null; polling_unit?: string | null } }>("/auth/login/", {
         method: "POST",
         skipOrgHeader: true,
         body: JSON.stringify(values),
       });
       await refreshUser();
-      router.push("/dashboard");
+      if (res.user.memberships.length > 0) {
+        router.push("/dashboard");
+      } else {
+        const params = new URLSearchParams();
+        if (res.user.state) params.set("state", res.user.state);
+        if (res.user.lga) params.set("lga", res.user.lga);
+        if (res.user.ward) params.set("ward", res.user.ward);
+        if (res.user.polling_unit) params.set("polling_unit", res.user.polling_unit);
+        router.push(`/marketplace${params.toString() ? `?${params.toString()}` : ""}`);
+      }
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Failed to sign in.");
     }
@@ -72,12 +90,12 @@ export default function LoginPage() {
       <Card className="relative w-full max-w-md rounded-mezer-lg">
         <CardHeader className="space-y-1.5 text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
-            <Scissors className="h-5 w-5" />
+            <Wrench className="h-5 w-5" />
           </div>
-          <div className="mezer-eyebrow justify-center">Artisan Studio Access</div>
+          <div className="mezer-eyebrow justify-center">Artisan Workspace Access</div>
           <h1 className="text-2xl font-extrabold tracking-tight text-plum">Sign in to ArtisanOS</h1>
           <p className="text-sm text-ink-soft">
-            Access your customer fit book and tailoring orders.
+            Manage your storefront, work call-outs, customers, and orders.
           </p>
         </CardHeader>
         <CardContent>

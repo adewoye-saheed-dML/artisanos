@@ -1,7 +1,15 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Search, ShieldAlert, Users } from "lucide-react";
+import {
+  Building2,
+  ExternalLink,
+  Lock,
+  Search,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -10,10 +18,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/form-controls";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
-import { formatDateTime } from "@/lib/utils";
+import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type {
+  ArtisanVerification,
   AuditLogItem,
+  EscrowTransaction,
   Plan,
   PlatformAdminOrgSummary,
   PlatformAdminOverview,
@@ -58,6 +68,82 @@ export default function PlatformAdminPage() {
     queryFn: () =>
       apiRequest<AuditLogItem[]>("/platform-admin/audit-logs/", { skipOrgHeader: true }),
     enabled: isAdmin,
+  });
+
+  const { data: verifications } = useQuery({
+    queryKey: ["platform-admin-verifications"],
+    queryFn: () =>
+      apiRequest<ArtisanVerification[]>("/platform-admin/verifications/", { skipOrgHeader: true }),
+    enabled: isAdmin,
+  });
+
+  const { data: disputedEscrows } = useQuery({
+    queryKey: ["platform-admin-escrow-disputes"],
+    queryFn: () =>
+      apiRequest<EscrowTransaction[]>("/platform-admin/escrow/?status=disputed", {
+        skipOrgHeader: true,
+      }),
+    enabled: isAdmin,
+  });
+
+  const kycDecisionMutation = useMutation({
+    mutationFn: ({ orgId, action }: { orgId: string; action: "approve" | "reject" }) =>
+      apiRequest(`/platform-admin/verifications/${orgId}/${action}/`, {
+        method: "POST",
+        skipOrgHeader: true,
+        body: JSON.stringify({
+          reason:
+            auditReason.trim() ||
+            (action === "approve"
+              ? "NIN/CAC identity verification approved by platform admin."
+              : "Documents unclear or NIN/CAC details could not be verified."),
+        }),
+      }),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-verifications"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-orgs"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-audit-logs"] });
+      setActionError("");
+      setActionSuccess(
+        vars.action === "approve"
+          ? "Artisan KYC approved — storefront is now verified & live!"
+          : "Artisan KYC rejected and artisan notified."
+      );
+      setAuditReason("");
+    },
+    onError: (err) => {
+      setActionSuccess("");
+      setActionError(err instanceof Error ? err.message : "KYC review action failed.");
+    },
+  });
+
+  const resolveDisputeMutation = useMutation({
+    mutationFn: ({
+      escrowId,
+      decision,
+    }: {
+      escrowId: string;
+      decision: "refund_customer" | "release_to_artisan";
+    }) =>
+      apiRequest(`/platform-admin/escrow/${escrowId}/resolve/`, {
+        method: "POST",
+        skipOrgHeader: true,
+        body: JSON.stringify({
+          decision,
+          reason: auditReason.trim() || `Platform admin resolved dispute: ${decision}`,
+        }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-escrow-disputes"] });
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-audit-logs"] });
+      setActionError("");
+      setActionSuccess("Escrow dispute arbitrated and logged in audit trail.");
+      setAuditReason("");
+    },
+    onError: (err) => {
+      setActionSuccess("");
+      setActionError(err instanceof Error ? err.message : "Could not resolve escrow dispute.");
+    },
   });
 
   const toggleStatusMutation = useMutation({
@@ -278,6 +364,186 @@ export default function PlatformAdminPage() {
                 </tbody>
               </table>
             </div>
+          </Card>
+
+          {/* Artisan KYC Verification Queue (NIN & CAC) */}
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-700" />
+                <h2 className="text-base font-bold text-plum">
+                  Artisan KYC Verification Queue (NIN &amp; CAC)
+                </h2>
+              </div>
+              <span className="text-xs font-semibold text-ink-faint">
+                {verifications?.filter((v) => v.status === "pending_review").length ?? 0} pending
+                review
+              </span>
+            </CardHeader>
+            <CardContent className="divide-y divide-line-soft p-0">
+              {!verifications?.length ? (
+                <p className="p-6 text-sm text-ink-faint">No KYC applications submitted yet.</p>
+              ) : (
+                verifications.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex flex-wrap items-start justify-between gap-4 px-6 py-4 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-bold text-plum">{v.organization_name}</span>
+                        <StatusBadge status={v.status} />
+                        <span className="rounded-full bg-surface-blush px-2.5 py-0.5 text-[10px] font-bold text-brand-700">
+                          {v.organization_category}
+                        </span>
+                      </div>
+                      <div className="text-ink-soft">
+                        NIN: <strong className="font-mono">{v.nin_masked}</strong> (
+                        {v.government_id_type_label})
+                        {v.cac_number ? (
+                          <>
+                            {" "}
+                            · CAC: <strong className="font-mono">{v.cac_number}</strong> (
+                            {v.cac_business_name || "Registered"})
+                          </>
+                        ) : (
+                          " · No CAC supplied"
+                        )}
+                      </div>
+                      <div className="text-ink-faint">
+                        {[v.polling_unit_name, v.ward_name, v.state_name]
+                          .filter(Boolean)
+                          .join(" · ") || "Location pending"}
+                        {v.guarantor_name
+                          ? ` · Guarantor: ${v.guarantor_name} (${v.guarantor_phone})`
+                          : ""}
+                      </div>
+                      {v.documents && v.documents.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {v.documents.map((doc) => (
+                            <a
+                              key={doc.id}
+                              href={doc.content_path}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2.5 py-0.5 font-semibold text-brand-700 hover:bg-surface-blush"
+                            >
+                              {doc.document_type_label} <ExternalLink className="h-3 w-3" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {v.status !== "approved" && (
+                        <Button
+                          size="sm"
+                          onClick={() =>
+                            kycDecisionMutation.mutate({
+                              orgId: v.organization_id,
+                              action: "approve",
+                            })
+                          }
+                          disabled={kycDecisionMutation.isPending}
+                        >
+                          Approve KYC
+                        </Button>
+                      )}
+                      {v.status !== "rejected" && (
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() =>
+                            kycDecisionMutation.mutate({
+                              orgId: v.organization_id,
+                              action: "reject",
+                            })
+                          }
+                          disabled={kycDecisionMutation.isPending}
+                        >
+                          Reject
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Escrow Disputes Arbitration */}
+          <Card className="overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-brand-700" />
+                <h2 className="text-base font-bold text-plum">Escrow Disputes Arbitration</h2>
+              </div>
+              <span className="text-xs font-semibold text-red-700">
+                {disputedEscrows?.length ?? 0} open{" "}
+                {disputedEscrows?.length === 1 ? "dispute" : "disputes"}
+              </span>
+            </CardHeader>
+            <CardContent className="divide-y divide-line-soft p-0">
+              {!disputedEscrows?.length ? (
+                <p className="p-6 text-sm text-ink-faint">
+                  No open escrow disputes requiring arbitration.
+                </p>
+              ) : (
+                disputedEscrows.map((esc) => (
+                  <div
+                    key={esc.id}
+                    className="flex flex-wrap items-start justify-between gap-4 px-6 py-4 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-extrabold text-brand-700">
+                          {esc.reference}
+                        </span>
+                        <StatusBadge status={esc.status} />
+                        <span className="font-extrabold text-plum">
+                          {formatCurrency(esc.total_amount, esc.currency)}
+                        </span>
+                      </div>
+                      <div className="text-sm font-bold text-plum">{esc.job_title}</div>
+                      <div className="text-ink-soft">
+                        Customer: {esc.customer_name} ({esc.customer_phone}) vs Artisan:{" "}
+                        {esc.organization_name}
+                      </div>
+                      <div className="rounded-lg bg-red-50 px-3 py-1.5 text-red-900">
+                        <strong>Dispute:</strong> {esc.dispute_reason}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={resolveDisputeMutation.isPending}
+                        onClick={() =>
+                          resolveDisputeMutation.mutate({
+                            escrowId: esc.id,
+                            decision: "refund_customer",
+                          })
+                        }
+                      >
+                        Refund Customer
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={resolveDisputeMutation.isPending}
+                        onClick={() =>
+                          resolveDisputeMutation.mutate({
+                            escrowId: esc.id,
+                            decision: "release_to_artisan",
+                          })
+                        }
+                      >
+                        Release to Artisan
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
           </Card>
 
           <Card className="overflow-hidden">

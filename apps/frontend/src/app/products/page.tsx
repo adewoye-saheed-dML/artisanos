@@ -2,12 +2,16 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowRightCircle,
   ArrowUpDown,
   ClipboardCopy,
   ExternalLink,
   History,
   Inbox,
+  MapPin,
+  MessageCircle,
   Package,
+  Phone,
   Plus,
   Store,
   X,
@@ -21,12 +25,18 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/form-controls";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { apiRequest } from "@/lib/api-client";
+import {
+  buildTelHref,
+  buildWhatsAppHref,
+  getDefaultProductCategory,
+} from "@/lib/artisans";
 import { formatCurrency, formatDateTime, formatStatusLabel } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import type {
   InquiryStatus,
   InventoryMovement,
   InventoryMovementType,
+  OrderDetail,
   PaginatedResponse,
   Product,
   ProductStatus,
@@ -48,14 +58,15 @@ export default function ProductsPage() {
 
   // Create product state
   const [name, setName] = useState("");
-  const [category, setCategory] = useState("Bespoke Tailoring");
+  const [category, setCategory] = useState(getDefaultProductCategory(activeOrganization?.category));
   const [productType, setProductType] = useState<ProductType>("ready_made");
-  const [price, setPrice] = useState("45000.00");
+  const [price, setPrice] = useState("25000.00");
   const [sku, setSku] = useState("");
   const [initialStock, setInitialStock] = useState("5");
   const [status, setStatus] = useState<ProductStatus>("published");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState("");
+  const [convertNotice, setConvertNotice] = useState("");
 
   // Inventory adjust & ledger state
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
@@ -213,6 +224,23 @@ export default function ProductsPage() {
     },
   });
 
+  const convertInquiryMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiRequest<OrderDetail>(`/storefront/inquiries/${id}/convert/`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    onSuccess: (order) => {
+      queryClient.invalidateQueries({ queryKey: ["storefront-inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setConvertNotice(`Converted into Order ${order.order_number} for ${order.customer_name}.`);
+    },
+    onError: (err) => {
+      setConvertNotice(err instanceof Error ? err.message : "Could not convert inquiry.");
+    },
+  });
+
   const publicStorePath = `/store/${storefront?.slug || activeOrganization?.slug || ""}`;
   const newInquiryCount =
     inquiriesData?.results.filter((i) => i.status === "new").length ?? 0;
@@ -236,9 +264,12 @@ export default function ProductsPage() {
                 Products &amp; Storefront
               </h1>
               <p className="mt-1 text-xs text-plum-soft">
-                Public boutique URL:{" "}
+                Public storefront:{" "}
                 <span className="font-mono text-[#ffdce6]">{publicStorePath}</span>{" "}
                 · {storefront?.is_published ? "Published" : "Unpublished"}
+                {storefront?.ward_name
+                  ? ` · Pinned to ${storefront.ward_name}${storefront.polling_unit_name ? ` (${storefront.polling_unit_name})` : ""}`
+                  : " · Pin your Ward & Polling Unit in Workspace Settings to appear in nearby searches"}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -367,7 +398,7 @@ export default function ProductsPage() {
                 tab === "inquiries" ? "bg-plum text-white" : "text-ink-soft hover:text-plum"
               }`}
             >
-              <Inbox className="h-3.5 w-3.5" /> Inquiries
+              <Inbox className="h-3.5 w-3.5" /> Work Calls &amp; Inquiries
               {newInquiryCount > 0 && (
                 <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
                   {newInquiryCount}
@@ -731,69 +762,159 @@ export default function ProductsPage() {
           </>
         )}
 
-        {/* Storefront Inquiries Tab */}
+        {/* Storefront Work Calls & Inquiries Tab */}
         {tab === "inquiries" && (
-          <Card className="overflow-hidden">
-            {!inquiriesData?.results.length ? (
-              <CardContent className="py-12 text-center">
-                <Inbox className="mx-auto h-8 w-8 text-brand-700" />
-                <h2 className="mt-3 text-base font-bold text-plum">No storefront inquiries yet</h2>
-                <p className="mt-1 text-sm text-ink-soft">
-                  Share your public storefront link ({publicStorePath}) so buyers can inquire about
-                  published pieces.
-                </p>
-              </CardContent>
-            ) : (
-              <div className="divide-y divide-line-soft">
-                {inquiriesData.results.map((inq) => (
-                  <div
-                    key={inq.id}
-                    className="flex flex-wrap items-start justify-between gap-4 px-6 py-4"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-plum">{inq.buyer_name}</span>
-                        <StatusBadge status={inq.status} />
-                      </div>
-                      <div className="text-xs text-ink-soft">
-                        {inq.buyer_phone}
-                        {inq.buyer_email ? ` · ${inq.buyer_email}` : ""}
-                        {inq.product_name ? ` · Product: ${inq.product_name}` : ""}
-                      </div>
-                      <p className="text-sm text-ink">{inq.message}</p>
-                      <div className="text-[11px] text-ink-faint">
-                        {formatDateTime(inq.created_at)}
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      {inq.status === "new" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            updateInquiryMutation.mutate({ id: inq.id, nextStatus: "contacted" })
-                          }
-                        >
-                          Mark contacted
-                        </Button>
-                      )}
-                      {inq.status !== "closed" && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            updateInquiryMutation.mutate({ id: inq.id, nextStatus: "closed" })
-                          }
-                        >
-                          Close
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+          <div className="space-y-4">
+            {convertNotice && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-800">
+                {convertNotice}
               </div>
             )}
-          </Card>
+            <Card className="overflow-hidden">
+              {!inquiriesData?.results.length ? (
+                <CardContent className="py-12 text-center">
+                  <Inbox className="mx-auto h-8 w-8 text-brand-700" />
+                  <h2 className="mt-3 text-base font-bold text-plum">
+                    No work call-outs or inquiries yet
+                  </h2>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    Share your public storefront link ({publicStorePath}) or pin your Nigerian Ward
+                    &amp; Polling Unit in Settings so nearby customers can call you for work.
+                  </p>
+                </CardContent>
+              ) : (
+                <div className="divide-y divide-line-soft">
+                  {inquiriesData.results.map((inq) => {
+                    const callHref = buildTelHref(inq.buyer_phone);
+                    const waHref = buildWhatsAppHref(
+                      inq.buyer_phone,
+                      `Hello ${inq.buyer_name}, following up on your request with ${activeOrganization?.name || "our workshop"}.`
+                    );
+                    return (
+                      <div
+                        key={inq.id}
+                        className="flex flex-wrap items-start justify-between gap-4 px-6 py-4"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold text-plum">{inq.buyer_name}</span>
+                            <StatusBadge status={inq.status} />
+                            <span className="rounded-full bg-surface-blush px-2.5 py-0.5 text-[10px] font-bold text-brand-700">
+                              {formatStatusLabel(inq.inquiry_type)}
+                            </span>
+                            {inq.urgency === "emergency" && (
+                              <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-extrabold text-red-700">
+                                URGENT CALL-OUT
+                              </span>
+                            )}
+                            {inq.urgency === "today" && (
+                              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+                                NEEDED TODAY
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-ink-soft">
+                            {inq.buyer_phone}
+                            {inq.buyer_email ? ` · ${inq.buyer_email}` : ""}
+                            {inq.product_name
+                              ? ` · Item: ${inq.product_name}${inq.quantity > 1 ? ` (x${inq.quantity})` : ""}`
+                              : ""}
+                            {inq.budget_amount
+                              ? ` · Budget: ${formatCurrency(
+                                  inq.budget_amount,
+                                  activeOrganization?.currency || "NGN"
+                                )}`
+                              : ""}
+                          </div>
+                          {(inq.customer_polling_unit_name ||
+                            inq.customer_ward_name ||
+                            inq.customer_address) && (
+                            <div className="inline-flex items-center gap-1 text-xs font-semibold text-plum">
+                              <MapPin className="h-3.5 w-3.5 text-brand-600" />
+                              {[
+                                inq.customer_address,
+                                inq.customer_polling_unit_name
+                                  ? `PU: ${inq.customer_polling_unit_name}`
+                                  : "",
+                                inq.customer_ward_name ? `Ward: ${inq.customer_ward_name}` : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </div>
+                          )}
+                          <p className="text-sm text-ink">{inq.message}</p>
+                          <div className="text-[11px] text-ink-faint">
+                            {formatDateTime(inq.created_at)}
+                            {inq.converted_order_number && (
+                              <>
+                                {" "}
+                                ·{" "}
+                                <Link
+                                  href={`/orders/${inq.converted_order}`}
+                                  className="font-bold text-brand-700 hover:underline"
+                                >
+                                  View Order {inq.converted_order_number}
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {callHref && (
+                            <a href={callHref}>
+                              <Button size="sm" variant="outline">
+                                <Phone className="h-3.5 w-3.5" /> Call
+                              </Button>
+                            </a>
+                          )}
+                          {waHref && (
+                            <a href={waHref} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline">
+                                <MessageCircle className="h-3.5 w-3.5 text-emerald-700" /> WhatsApp
+                              </Button>
+                            </a>
+                          )}
+                          {!inq.converted_order && inq.status !== "closed" && (
+                            <Button
+                              size="sm"
+                              onClick={() => convertInquiryMutation.mutate(inq.id)}
+                              disabled={convertInquiryMutation.isPending}
+                            >
+                              <ArrowRightCircle className="h-3.5 w-3.5" />
+                              Convert to order
+                            </Button>
+                          )}
+                          {inq.status === "new" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                updateInquiryMutation.mutate({ id: inq.id, nextStatus: "contacted" })
+                              }
+                            >
+                              Mark contacted
+                            </Button>
+                          )}
+                          {inq.status !== "closed" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                updateInquiryMutation.mutate({ id: inq.id, nextStatus: "closed" })
+                              }
+                            >
+                              Close
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </div>
         )}
       </div>
     </AppShell>

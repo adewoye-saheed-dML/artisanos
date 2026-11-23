@@ -6,9 +6,78 @@ import { QueryProvider } from "@/providers/query-provider";
 
 import "./globals.css";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://artisanos.ng";
+
 export const metadata: Metadata = {
-  title: "ArtisanOS — Measurement & Order Workspace",
-  description: "Multi-tenant SaaS for tailors and measurement-based artisan businesses.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "ArtisanOS Nigeria — Find Verified Artisans Near Your Ward & Polling Unit",
+    template: "%s | ArtisanOS Nigeria",
+  },
+  description:
+    "Find verified electricians, plumbers, tailors, carpenters, mechanics, shoemakers, and local makers by Nigerian Ward or Polling Unit. Hire directly for services or buy handcrafted goods with secure payment protection.",
+  keywords: [
+    "find artisans in Nigeria",
+    "verified artisans near me",
+    "electrician near me Lagos",
+    "plumber near me Abuja",
+    "tailor near me Nigeria",
+    "carpenter near me Lagos",
+    "auto mechanic near me Nigeria",
+    "shoemaker Nigeria",
+    "AC repair technician near me",
+    "solar inverter installer Nigeria",
+    "polling unit artisan finder",
+    "Nigerian ward artisan directory",
+    "NIN verified artisans Nigeria",
+    "CAC verified artisans Nigeria",
+    "escrow payment for artisans Nigeria",
+    "hire handyman Lagos Abuja Port Harcourt Ibadan Kano",
+    "buy handmade goods Nigeria",
+    "ArtisanOS",
+  ],
+  authors: [{ name: "ArtisanOS Nigeria" }],
+  creator: "ArtisanOS",
+  publisher: "ArtisanOS",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: SITE_URL,
+    siteName: "ArtisanOS Nigeria",
+    title: "ArtisanOS Nigeria — Trusted Artisans in Your Ward & Polling Unit",
+    description:
+      "Search verified local artisans by Ward and Polling Unit across Nigeria. Book home repairs, custom services, or buy handcrafted goods with secure payment protection.",
+    images: [
+      {
+        url: "https://images.pexels.com/photos/3738095/pexels-photo-3738095.jpeg?auto=compress&cs=tinysrgb&w=1200",
+        width: 1200,
+        height: 800,
+        alt: "Tailor sewing fabric on a sewing machine in a workshop on ArtisanOS Nigeria",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ArtisanOS Nigeria — Find Verified Artisans Near Your Ward & Polling Unit",
+    description:
+      "Discover verified electricians, plumbers, tailors, carpenters, and mechanics near your Ward or Polling Unit across Nigeria.",
+    images: [
+      "https://images.pexels.com/photos/3738095/pexels-photo-3738095.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
   appleWebApp: {
     capable: true,
     title: "ArtisanOS",
@@ -24,7 +93,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-NG">
       <body>
         <QueryProvider>
           <AuthProvider>{children}</AuthProvider>

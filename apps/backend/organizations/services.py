@@ -27,6 +27,59 @@ def generate_unique_org_slug(name: str) -> str:
     return candidate
 
 
+def resolve_nigerian_location_hierarchy(
+    *,
+    state=None,
+    lga=None,
+    ward=None,
+    polling_unit=None,
+):
+    """
+    Validate and auto-fill parent Nigerian administrative units from the most specific unit supplied.
+    Guarantees consistent State -> LGA -> Ward -> Polling Unit pointers on Organization.
+    """
+    if polling_unit is not None:
+        if ward is not None and polling_unit.ward_id != ward.id:
+            raise exceptions.ValidationError(
+                {"polling_unit": "Selected polling unit does not belong to the chosen ward."}
+            )
+        ward = polling_unit.ward
+
+    if ward is not None:
+        if lga is not None and ward.lga_id != lga.id:
+            raise exceptions.ValidationError(
+                {"ward": "Selected ward does not belong to the chosen LGA."}
+            )
+        lga = ward.lga
+
+    if lga is not None:
+        if state is not None and lga.state_id != state.id:
+            raise exceptions.ValidationError(
+                {"lga": "Selected LGA does not belong to the chosen state."}
+            )
+        state = lga.state
+
+    return state, lga, ward, polling_unit
+
+
+def clean_skills_list(skills) -> list[str]:
+    if not skills:
+        return []
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for item in skills:
+        text = str(item).strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key not in seen:
+            seen.add(key)
+            cleaned.append(text[:60])
+        if len(cleaned) >= 15:
+            break
+    return cleaned
+
+
 @transaction.atomic
 def create_organization_with_owner(
     *,
@@ -40,8 +93,30 @@ def create_organization_with_owner(
     country: str = "",
     currency: str = "NGN",
     preferred_unit: str = Organization.UnitSystem.CM,
+    state=None,
+    lga=None,
+    ward=None,
+    polling_unit=None,
+    service_wards=None,
+    landmark: str = "",
+    availability_status: str = Organization.AvailabilityStatus.AVAILABLE,
+    available_for_callout: bool = True,
+    offers_goods: bool = True,
+    offers_services: bool = True,
+    callout_fee=None,
+    years_experience: int | None = None,
+    skills: list[str] | None = None,
 ) -> tuple[Organization, Membership]:
     """Create an organization and assign the creating user as active owner."""
+    resolved_state, resolved_lga, resolved_ward, resolved_pu = resolve_nigerian_location_hierarchy(
+        state=state,
+        lga=lga,
+        ward=ward,
+        polling_unit=polling_unit,
+    )
+    resolved_city = city.strip() or (resolved_lga.name if resolved_lga else "")
+    resolved_country = country.strip() or ("Nigeria" if resolved_state else "")
+
     org = Organization.objects.create(
         name=name.strip(),
         slug=generate_unique_org_slug(name),
@@ -49,11 +124,25 @@ def create_organization_with_owner(
         email=email.strip(),
         phone=phone.strip(),
         address=address.strip(),
-        city=city.strip(),
-        country=country.strip(),
+        city=resolved_city,
+        country=resolved_country,
+        state=resolved_state,
+        lga=resolved_lga,
+        ward=resolved_ward,
+        polling_unit=resolved_pu,
+        landmark=landmark.strip(),
+        availability_status=availability_status,
+        available_for_callout=available_for_callout,
+        offers_goods=offers_goods,
+        offers_services=offers_services,
+        callout_fee=callout_fee,
+        years_experience=years_experience,
+        skills=clean_skills_list(skills),
         currency=currency.strip().upper(),
         preferred_unit=preferred_unit,
     )
+    if service_wards:
+        org.service_wards.set(service_wards)
     membership = Membership.objects.create(
         user=user,
         organization=org,

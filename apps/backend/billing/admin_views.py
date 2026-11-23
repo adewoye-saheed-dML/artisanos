@@ -9,8 +9,13 @@ from rest_framework.views import APIView
 
 from accounts.models import User
 from customers.models import Customer
+from escrow.models import EscrowTransaction
+from escrow.serializers import EscrowResolveSerializer, EscrowTransactionSerializer
+from escrow.services import resolve_escrow_dispute
 from orders.models import Order
-from organizations.models import Membership, Organization
+from organizations.kyc_services import approve_artisan_kyc, reject_artisan_kyc
+from organizations.models import ArtisanVerification, Membership, Organization
+from organizations.serializers import ArtisanVerificationSerializer
 
 from .models import AuditLog, Plan
 from .seed import seed_default_plans
@@ -184,3 +189,101 @@ class PlatformAdminAuditLogListView(APIView):
     def get(self, request):
         logs = AuditLog.objects.select_related("actor", "organization").order_by("-created_at")[:100]
         return Response(AuditLogSerializer(logs, many=True).data)
+
+
+class PlatformAdminVerificationListView(APIView):
+    """Inspect artisan NIN/CAC KYC verification queue."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(responses={200: ArtisanVerificationSerializer(many=True)})
+    def get(self, request):
+        status_filter = (request.query_params.get("status") or "").strip()
+        qs = (
+            ArtisanVerification.objects.select_related(
+                "organization",
+                "organization__state",
+                "organization__ward",
+                "organization__polling_unit",
+                "submitted_by",
+                "reviewed_by",
+            )
+            .prefetch_related("documents__uploaded_by")
+            .order_by("-submitted_at")
+        )
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return Response(ArtisanVerificationSerializer(qs[:100], many=True).data)
+
+
+class PlatformAdminApproveKYCView(APIView):
+    """Approve an artisan's NIN/CAC verification and auto-publish their storefront."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(request=PlatformAdminActionSerializer, responses={200: ArtisanVerificationSerializer})
+    def post(self, request, org_id):
+        org = get_object_or_404(Organization, id=org_id)
+        notes = (request.data.get("reason") or request.data.get("notes") or "").strip()
+        kyc = approve_artisan_kyc(organization=org, reviewer=request.user, notes=notes)
+        return Response(ArtisanVerificationSerializer(kyc).data, status=status.HTTP_200_OK)
+
+
+class PlatformAdminRejectKYCView(APIView):
+    """Reject an artisan's KYC application with mandatory reason."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(request=PlatformAdminActionSerializer, responses={200: ArtisanVerificationSerializer})
+    def post(self, request, org_id):
+        org = get_object_or_404(Organization, id=org_id)
+        serializer = PlatformAdminActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        kyc = reject_artisan_kyc(
+            organization=org,
+            reviewer=request.user,
+            reason=serializer.validated_data["reason"],
+        )
+        return Response(ArtisanVerificationSerializer(kyc).data, status=status.HTTP_200_OK)
+
+
+class PlatformAdminEscrowDisputeListView(APIView):
+    """List escrow transactions (filterable by status, defaulting to disputed)."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(responses={200: EscrowTransactionSerializer(many=True)})
+    def get(self, request):
+        status_filter = (request.query_params.get("status") or EscrowTransaction.Status.DISPUTED).strip()
+        qs = (
+            EscrowTransaction.objects.select_related("organization", "customer_user", "order")
+            .prefetch_related("events__actor")
+            .order_by("-created_at")
+        )
+        if status_filter and status_filter != "all":
+            qs = qs.filter(status=status_filter)
+        return Response(
+            EscrowTransactionSerializer(qs[:100], many=True, context={"request": request}).data
+        )
+
+
+class PlatformAdminEscrowResolveView(APIView):
+    """Arbitrate a disputed escrow transaction (refund customer or release to artisan)."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(request=EscrowResolveSerializer, responses={200: EscrowTransactionSerializer})
+    def post(self, request, escrow_id):
+        escrow = get_object_or_404(EscrowTransaction, id=escrow_id)
+        serializer = EscrowResolveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        resolved = resolve_escrow_dispute(
+            escrow=escrow,
+            admin_user=request.user,
+            decision=serializer.validated_data["decision"],
+            reason=serializer.validated_data["reason"],
+        )
+        return Response(
+            EscrowTransactionSerializer(resolved, context={"request": request}).data,
+            status=status.HTTP_200_OK,
+        )

@@ -55,9 +55,29 @@ const CATEGORY_OPTION_FIELDS: Record<
     { key: "hardware_finish", label: "Hardware finish", placeholder: "Solid brass / Brushed nickel" },
     { key: "monogram", label: "Monogram / stitching", placeholder: "Blind deboss 'A.O' / Cream linen" },
   ],
+  electrician: [
+    { key: "fault_or_scope", label: "Electrical scope / fault", placeholder: "Inverter install / Breaker tripping" },
+    { key: "load_capacity", label: "Load / voltage rating", placeholder: "3.5kVA / Single-phase 220V" },
+    { key: "site_landmark", label: "Site ward / landmark", placeholder: "Allen Roundabout, Ikeja" },
+  ],
+  plumber: [
+    { key: "issue_type", label: "Plumbing issue / install", placeholder: "Burst pipe / Shower mixer / Borehole" },
+    { key: "pipe_spec", label: "Pipe / fitting spec", placeholder: "PPR 25mm / Concealed brass" },
+    { key: "site_landmark", label: "Site ward / landmark", placeholder: "Bode Thomas, Surulere" },
+  ],
+  carpenter: [
+    { key: "wood_material", label: "Wood / board material", placeholder: "Marine board / HDF / Mahogany" },
+    { key: "dimensions", label: "Dimensions", placeholder: "6ft x 2ft x 1.5ft" },
+    { key: "finish", label: "Finish & color", placeholder: "Matte walnut / Gloss white" },
+  ],
+  mechanic: [
+    { key: "vehicle_model", label: "Vehicle make & year", placeholder: "Toyota Camry 2015" },
+    { key: "fault_symptoms", label: "Fault / service needed", placeholder: "OBD scan / Brake pads / Oil service" },
+    { key: "parts_source", label: "Parts supplied by", placeholder: "Artisan / Customer supplied" },
+  ],
   other: [
-    { key: "material", label: "Primary material", placeholder: "Material specification" },
-    { key: "finish", label: "Finish / detailing", placeholder: "Custom finish notes" },
+    { key: "material", label: "Primary material / scope", placeholder: "Material or service specification" },
+    { key: "site_or_finish", label: "Finish / site notes", placeholder: "Custom finish or site landmark" },
   ],
 };
 
@@ -87,7 +107,7 @@ function OrdersContent() {
 
   const activeCategoryFields =
     CATEGORY_OPTION_FIELDS[activeOrganization?.category || "tailor"] ||
-    CATEGORY_OPTION_FIELDS.tailor;
+    CATEGORY_OPTION_FIELDS.other;
 
   useEffect(() => {
     if (initialCustomer) {

@@ -18,6 +18,7 @@ def test_register_with_workspace_sets_httponly_cookies_and_returns_org():
             "phone": "+2348012345678",
             "organization_name": "Ada Bespoke Tailors",
             "organization_category": "tailor",
+            "nin": "12345678901",
             "currency": "NGN",
             "preferred_unit": "cm",
         },
@@ -50,6 +51,7 @@ def test_cookie_auth_requires_csrf_on_mutations_and_supports_logout():
             "password": "StrongPassword123!",
             "full_name": "Kemi Tailor",
             "organization_name": "Kemi Atelier",
+            "nin": "23456789012",
         },
         format="json",
     )
