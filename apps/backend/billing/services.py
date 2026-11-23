@@ -169,7 +169,7 @@ def process_paystack_webhook_event(payload: dict) -> dict:
         from escrow.services import fund_escrow_transaction
 
         escrow = (
-            EscrowTransaction.objects.select_for_update()
+            EscrowTransaction.objects.select_for_update(of=("self",))
             .select_related("organization")
             .filter(reference=reference)
             .first()
