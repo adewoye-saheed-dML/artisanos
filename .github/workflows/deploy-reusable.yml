@@ -63,8 +63,9 @@ jobs:
       - name: Trigger Render backend deployment
         if: steps.provider.outputs.name == 'render'
         run: |
+          HOOK_URL=$(printf '%s' "$RENDER_BACKEND_DEPLOY_HOOK_URL" | tr -d '[:space:]')
           echo "Triggering Render backend deploy hook..."
-          RESPONSE=$(curl --fail-with-body -sS -X POST "$RENDER_BACKEND_DEPLOY_HOOK_URL")
+          RESPONSE=$(curl --fail-with-body -sS -X POST "$HOOK_URL")
           echo "Render response: $RESPONSE"
 
       - name: Setup Node.js for Railway CLI
@@ -87,13 +88,14 @@ jobs:
       - name: Verify backend health endpoint
         if: env.BACKEND_HEALTHCHECK_URL != ''
         run: |
-          echo "Waiting for backend deployment at $BACKEND_HEALTHCHECK_URL ..."
+          HEALTH_URL=$(printf '%s' "$BACKEND_HEALTHCHECK_URL" | tr -d '[:space:]')
+          echo "Waiting for backend deployment at $HEALTH_URL ..."
           sleep 20
 
           MAX_ATTEMPTS=36
           SLEEP_SECONDS=10
           for i in $(seq 1 $MAX_ATTEMPTS); do
-            BODY=$(curl -sS --max-time 20 -w "\n%{http_code}" "$BACKEND_HEALTHCHECK_URL" || true)
+            BODY=$(curl -sS --max-time 20 -w "\n%{http_code}" "$HEALTH_URL" || true)
             HTTP_CODE=$(echo "$BODY" | tail -n1)
             PAYLOAD=$(echo "$BODY" | sed '$d')
             echo "Attempt $i/$MAX_ATTEMPTS -> HTTP $HTTP_CODE"
@@ -104,7 +106,7 @@ jobs:
             sleep $SLEEP_SECONDS
           done
 
-          echo "::error::Backend health check failed after $((MAX_ATTEMPTS * SLEEP_SECONDS))s at $BACKEND_HEALTHCHECK_URL"
+          echo "::error::Backend health check failed after $((MAX_ATTEMPTS * SLEEP_SECONDS))s at $HEALTH_URL"
           exit 1
 
       - name: Notice if BACKEND_HEALTHCHECK_URL is not configured
@@ -149,8 +151,9 @@ jobs:
       - name: Trigger Render frontend deployment
         if: steps.provider.outputs.name == 'render'
         run: |
+          HOOK_URL=$(printf '%s' "$RENDER_FRONTEND_DEPLOY_HOOK_URL" | tr -d '[:space:]')
           echo "Triggering Render frontend deploy hook..."
-          RESPONSE=$(curl --fail-with-body -sS -X POST "$RENDER_FRONTEND_DEPLOY_HOOK_URL")
+          RESPONSE=$(curl --fail-with-body -sS -X POST "$HOOK_URL")
           echo "Render response: $RESPONSE"
 
       - name: Setup Node.js 22 (Vercel)
@@ -181,13 +184,14 @@ jobs:
       - name: Record deployed frontend URL
         id: deploy_result
         run: |
-          URL="${FRONTEND_SMOKE_URL:-${{ steps.vercel_deploy.outputs.url }}}"
+          RAW_URL="${FRONTEND_SMOKE_URL:-${{ steps.vercel_deploy.outputs.url }}}"
+          URL=$(printf '%s' "$RAW_URL" | tr -d '[:space:]')
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Verify deployed frontend responsiveness
         if: steps.deploy_result.outputs.url != ''
         run: |
-          TARGET_URL="${{ steps.deploy_result.outputs.url }}"
+          TARGET_URL=$(printf '%s' "${{ steps.deploy_result.outputs.url }}" | tr -d '[:space:]')
           echo "Checking frontend responsiveness at $TARGET_URL ..."
           if [ "${{ steps.provider.outputs.name }}" = "render" ]; then
             sleep 25
