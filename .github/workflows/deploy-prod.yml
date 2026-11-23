@@ -1,0 +1,23 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: CI & Deploy Production
+    uses: ./.github/workflows/deploy-reusable.yml
+    with:
+      environment: production
+      vercel_environment: production
+      vercel_prod_flag: true
+    secrets: inherit

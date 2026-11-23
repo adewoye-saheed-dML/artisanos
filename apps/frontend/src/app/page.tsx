@@ -39,8 +39,8 @@ const FEATURED_TRADES = [
     href: "/marketplace?category=tailor",
     tag: "Custom & Ready-Made",
     image:
-      "https://images.pexels.com/photos/4621908/pexels-photo-4621908.jpeg?auto=compress&cs=tinysrgb&w=900",
-    alt: "Tailor and fashion designer cutting fabric with studio tools on a worktable",
+      "https://images.pexels.com/photos/34908665/pexels-photo-34908665/free-photo-of-close-up-of-sewing-machine-on-table.jpeg?auto=compress&cs=tinysrgb&w=900",
+    alt: "Sewing machine and tailoring fabric materials arranged on a workshop table",
     objectPosition: "object-center",
   },
   {
@@ -63,9 +63,9 @@ const FEATURED_TRADES = [
     href: "/marketplace?category=plumber",
     tag: "Repairs & Fitting",
     image:
-      "https://images.pexels.com/photos/8486978/pexels-photo-8486978.jpeg?auto=compress&cs=tinysrgb&w=900",
-    alt: "Plumber holding a heavy-duty pipe wrench ready for pipework and repairs",
-    objectPosition: "object-top",
+      "https://images.pexels.com/photos/14845870/pexels-photo-14845870.jpeg?auto=compress&cs=tinysrgb&w=900",
+    alt: "Close-up of fitted plumbing pipes and joints installed along a wall",
+    objectPosition: "object-center",
   },
   {
     title: "Carpentry & Custom Furniture",
@@ -688,9 +688,7 @@ export default function HomePage() {
             <Wrench className="h-3.5 w-3.5 text-brand-700" />
             ArtisanOS Nigeria
           </div>
-          <div>
-            Local Services &amp; Handcrafted Goods · Coverage Across 36 States, FCT &amp; 774 LGAs
-          </div>
+          <div>&copy; {new Date().getFullYear()} ArtisanOS Nigeria. All rights reserved.</div>
         </div>
       </footer>
     </div>

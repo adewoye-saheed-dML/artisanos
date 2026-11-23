@@ -1,0 +1,240 @@
+name: Reusable Deploy (Render Backend + Render/Vercel Frontend)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment name (staging or production)
+        required: true
+        type: string
+      vercel_environment:
+        description: Optional Vercel CLI target environment (preview or production)
+        required: false
+        default: preview
+        type: string
+      vercel_prod_flag:
+        description: Optional --prod flag if using Vercel instead of Render for frontend
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI Quality Gate
+    uses: ./.github/workflows/ci.yml
+
+  deploy-backend:
+    name: Deploy Backend (${{ inputs.environment }})
+    needs: ci
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      RENDER_BACKEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL || secrets.RENDER_DEPLOY_HOOK_URL }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+      RAILWAY_ENVIRONMENT: ${{ vars.RAILWAY_ENVIRONMENT }}
+      BACKEND_HEALTHCHECK_URL: ${{ vars.BACKEND_HEALTHCHECK_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate backend deployment configuration
+        id: provider
+        run: |
+          if [ -n "$RENDER_BACKEND_DEPLOY_HOOK_URL" ]; then
+            echo "name=render" >> "$GITHUB_OUTPUT"
+            echo "Using Render Deploy Hook for backend (${{ inputs.environment }})."
+          elif [ -n "$RAILWAY_TOKEN" ]; then
+            if [ -z "$RAILWAY_SERVICE" ]; then
+              echo "::error::RAILWAY_TOKEN is set, but variable RAILWAY_SERVICE is missing."
+              exit 1
+            fi
+            echo "name=railway" >> "$GITHUB_OUTPUT"
+            echo "Using Railway CLI for backend (${{ inputs.environment }}, service: $RAILWAY_SERVICE)."
+          else
+            echo "::error::No backend deploy hook configured for '${{ inputs.environment }}'. Add secret RENDER_BACKEND_DEPLOY_HOOK_URL (or RENDER_DEPLOY_HOOK_URL) in GitHub Settings -> Environments -> ${{ inputs.environment }}."
+            exit 1
+          fi
+
+      - name: Trigger Render backend deployment
+        if: steps.provider.outputs.name == 'render'
+        run: |
+          echo "Triggering Render backend deploy hook..."
+          RESPONSE=$(curl --fail-with-body -sS -X POST "$RENDER_BACKEND_DEPLOY_HOOK_URL")
+          echo "Render response: $RESPONSE"
+
+      - name: Setup Node.js for Railway CLI
+        if: steps.provider.outputs.name == 'railway'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Deploy backend to Railway
+        if: steps.provider.outputs.name == 'railway'
+        working-directory: apps/backend
+        run: |
+          npm install --global @railway/cli
+          ARGS=("--service" "$RAILWAY_SERVICE" "--ci")
+          if [ -n "$RAILWAY_ENVIRONMENT" ]; then
+            ARGS+=("--environment" "$RAILWAY_ENVIRONMENT")
+          fi
+          railway up "${ARGS[@]}"
+
+      - name: Verify backend health endpoint
+        if: env.BACKEND_HEALTHCHECK_URL != ''
+        run: |
+          echo "Waiting for backend deployment at $BACKEND_HEALTHCHECK_URL ..."
+          sleep 20
+
+          MAX_ATTEMPTS=36
+          SLEEP_SECONDS=10
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            BODY=$(curl -sS --max-time 20 -w "\n%{http_code}" "$BACKEND_HEALTHCHECK_URL" || true)
+            HTTP_CODE=$(echo "$BODY" | tail -n1)
+            PAYLOAD=$(echo "$BODY" | sed '$d')
+            echo "Attempt $i/$MAX_ATTEMPTS -> HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" = "200" ] && echo "$PAYLOAD" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
+              echo "Backend healthy: $PAYLOAD"
+              exit 0
+            fi
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Backend health check failed after $((MAX_ATTEMPTS * SLEEP_SECONDS))s at $BACKEND_HEALTHCHECK_URL"
+          exit 1
+
+      - name: Notice if BACKEND_HEALTHCHECK_URL is not configured
+        if: env.BACKEND_HEALTHCHECK_URL == ''
+        run: |
+          echo "::notice::Set environment variable BACKEND_HEALTHCHECK_URL (e.g. https://artisanos-api-stage.onrender.com/api/v1/health/) to verify backend health after deploy."
+
+  deploy-frontend:
+    name: Deploy Frontend (${{ inputs.environment }})
+    needs: [ci, deploy-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.deploy_result.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy_result.outputs.url }}
+    env:
+      RENDER_FRONTEND_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_WORKDIR: ${{ vars.VERCEL_WORKDIR || '.' }}
+      FRONTEND_SMOKE_URL: ${{ vars.FRONTEND_SMOKE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect frontend deployment provider
+        id: provider
+        run: |
+          if [ -n "$RENDER_FRONTEND_DEPLOY_HOOK_URL" ]; then
+            echo "name=render" >> "$GITHUB_OUTPUT"
+            echo "Using Render Deploy Hook for frontend (${{ inputs.environment }})."
+          elif [ -n "$VERCEL_TOKEN" ] && [ -n "$VERCEL_ORG_ID" ] && [ -n "$VERCEL_PROJECT_ID" ]; then
+            echo "name=vercel" >> "$GITHUB_OUTPUT"
+            echo "Using Vercel CLI for frontend (${{ inputs.environment }})."
+          else
+            echo "::error::No frontend deployment configured for '${{ inputs.environment }}'. Add secret RENDER_FRONTEND_DEPLOY_HOOK_URL (for Render) or VERCEL_TOKEN + VERCEL_ORG_ID + VERCEL_PROJECT_ID (for Vercel) in GitHub Settings -> Environments -> ${{ inputs.environment }}."
+            exit 1
+          fi
+
+      - name: Trigger Render frontend deployment
+        if: steps.provider.outputs.name == 'render'
+        run: |
+          echo "Triggering Render frontend deploy hook..."
+          RESPONSE=$(curl --fail-with-body -sS -X POST "$RENDER_FRONTEND_DEPLOY_HOOK_URL")
+          echo "Render response: $RESPONSE"
+
+      - name: Setup Node.js 22 (Vercel)
+        if: steps.provider.outputs.name == 'vercel'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Build and deploy frontend via Vercel CLI
+        id: vercel_deploy
+        if: steps.provider.outputs.name == 'vercel'
+        working-directory: ${{ env.VERCEL_WORKDIR }}
+        run: |
+          npm install --global vercel@latest
+          vercel pull --yes --environment=${{ inputs.vercel_environment }} --token="$VERCEL_TOKEN"
+          if [ "${{ inputs.vercel_prod_flag }}" = "true" ]; then
+            vercel build --prod --token="$VERCEL_TOKEN"
+            DEPLOY_URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" | tail -n 1 | tr -d '[:space:]')
+          else
+            vercel build --token="$VERCEL_TOKEN"
+            DEPLOY_URL=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN" | tail -n 1 | tr -d '[:space:]')
+          fi
+          echo "Deployed Vercel URL: $DEPLOY_URL"
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Record deployed frontend URL
+        id: deploy_result
+        run: |
+          URL="${FRONTEND_SMOKE_URL:-${{ steps.vercel_deploy.outputs.url }}}"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Verify deployed frontend responsiveness
+        if: steps.deploy_result.outputs.url != ''
+        run: |
+          TARGET_URL="${{ steps.deploy_result.outputs.url }}"
+          echo "Checking frontend responsiveness at $TARGET_URL ..."
+          if [ "${{ steps.provider.outputs.name }}" = "render" ]; then
+            sleep 25
+          fi
+
+          MAX_ATTEMPTS=24
+          SLEEP_SECONDS=10
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            HTTP_CODE=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 20 -L "$TARGET_URL" || echo "000")
+            echo "Attempt $i/$MAX_ATTEMPTS -> HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
+              echo "Frontend responded cleanly (HTTP $HTTP_CODE)."
+              exit 0
+            elif [ "${{ steps.provider.outputs.name }}" = "vercel" ] && [ "${{ inputs.vercel_prod_flag }}" != "true" ] && [ "$HTTP_CODE" = "401" ]; then
+              echo "::notice::Staging Vercel preview URL returned HTTP 401 (Vercel Deployment Protection enabled)."
+              exit 0
+            fi
+            sleep $SLEEP_SECONDS
+          done
+
+          echo "::error::Frontend smoke check failed after $((MAX_ATTEMPTS * SLEEP_SECONDS))s at $TARGET_URL"
+          exit 1
+
+      - name: Notice if FRONTEND_SMOKE_URL is not configured
+        if: steps.deploy_result.outputs.url == ''
+        run: |
+          echo "::notice::Set environment variable FRONTEND_SMOKE_URL (e.g. https://artisanos-web-stage.onrender.com) to enable post-deploy frontend verification."
+
+  summary:
+    name: Deployment Summary
+    needs: [ci, deploy-backend, deploy-frontend]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write job summary
+        run: |
+          {
+            echo "## ArtisanOS Deployment Summary (${{ inputs.environment }})"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| **Branch** | \`${{ github.ref_name }}\` |"
+            echo "| **Commit** | \`${{ github.sha }}\` |"
+            echo "| **CI Gate** | \`${{ needs.ci.result }}\` |"
+            echo "| **Backend Deploy** | \`${{ needs.deploy-backend.result }}\` |"
+            echo "| **Frontend Deploy** | \`${{ needs.deploy-frontend.result }}\` |"
+            if [ -n "${{ needs.deploy-frontend.outputs.url }}" ]; then
+              echo "| **Frontend URL** | ${{ needs.deploy-frontend.outputs.url }} |"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

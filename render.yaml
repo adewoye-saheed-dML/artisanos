@@ -1,0 +1,144 @@
+# Render Blueprint for ArtisanOS (Backend + Frontend for Staging & Production)
+# Import in Render Dashboard -> New -> Blueprint, or create each service manually using these settings.
+# autoDeploy is set to false so GitHub Actions gates every deployment on CI passing first.
+
+databases:
+  - name: artisanos-db-stage
+    plan: free
+    databaseName: artisanos_stage
+    user: artisanos_stage
+
+  - name: artisanos-db-prod
+    plan: basic-256mb
+    databaseName: artisanos_prod
+    user: artisanos_prod
+
+services:
+  # -------------------------
+  # STAGING SERVICES (stage)
+  # -------------------------
+  - type: web
+    name: artisanos-api-stage
+    runtime: python
+    branch: stage
+    autoDeploy: false
+    rootDir: apps/backend
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: >-
+      python manage.py migrate --noinput &&
+      python manage.py seed_templates &&
+      python manage.py seed_plans &&
+      gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/v1/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: artisanos-db-stage
+          property: connectionString
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: AUTH_COOKIE_SECURE
+        value: "True"
+      - key: AUTH_COOKIE_SAMESITE
+        value: Lax
+      - key: CSRF_COOKIE_SECURE
+        value: "True"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: FEATURE_CAMERA_MEASUREMENTS
+        value: "False"
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+
+  - type: web
+    name: artisanos-web-stage
+    runtime: node
+    branch: stage
+    autoDeploy: false
+    rootDir: apps/frontend
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: /api/v1
+      - key: BACKEND_INTERNAL_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+
+  # ---------------------------
+  # PRODUCTION SERVICES (prod)
+  # ---------------------------
+  - type: web
+    name: artisanos-api-prod
+    runtime: python
+    branch: prod
+    autoDeploy: false
+    rootDir: apps/backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput && python manage.py seed_templates && python manage.py seed_plans
+    startCommand: gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
+    healthCheckPath: /api/v1/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: artisanos-db-prod
+          property: connectionString
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: AUTH_COOKIE_SECURE
+        value: "True"
+      - key: AUTH_COOKIE_SAMESITE
+        value: Lax
+      - key: CSRF_COOKIE_SECURE
+        value: "True"
+      - key: SESSION_COOKIE_SECURE
+        value: "True"
+      - key: FEATURE_CAMERA_MEASUREMENTS
+        value: "False"
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+
+  - type: web
+    name: artisanos-web-prod
+    runtime: node
+    branch: prod
+    autoDeploy: false
+    rootDir: apps/frontend
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -H 0.0.0.0 -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: 22.12.0
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: /api/v1
+      - key: BACKEND_INTERNAL_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false

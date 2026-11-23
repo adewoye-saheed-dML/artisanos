@@ -2,11 +2,21 @@ name: ArtisanOS CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
+    branches: [main, stage, prod]
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/main' }}
+
+permissions:
+  contents: read
 
 jobs:
   backend:
+    name: Backend (Django + PostgreSQL)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -24,37 +34,52 @@ jobs:
           --health-retries 5
     env:
       ARTISANOS_DATABASE_URL: postgres://artisanos:artisanos_ci_password@127.0.0.1:5432/artisanos
-      DJANGO_SECRET_KEY: ci-test-secret-key
+      DJANGO_SECRET_KEY: ci-test-secret-key-not-for-production-use-only
       DJANGO_DEBUG: "False"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/backend/requirements.txt
+
       - name: Install backend dependencies
         run: pip install -r apps/backend/requirements.txt
-      - name: Check Django system health & pending migrations
+
+      - name: Check Django system health, migrations, OpenAPI schema & static assets
         working-directory: apps/backend
         run: |
           python manage.py check
           python manage.py makemigrations --check --dry-run
           python manage.py spectacular --validate --file /dev/null
+          python manage.py collectstatic --noinput
+
       - name: Run pytest suite against PostgreSQL
         working-directory: apps/backend
         run: pytest -v tests
 
   frontend:
+    name: Frontend (Next.js + TypeScript)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: apps/frontend/package-lock.json
+
       - name: Install frontend dependencies
         working-directory: apps/frontend
         run: npm ci
+
       - name: Lint, typecheck, and build Next.js app
         working-directory: apps/frontend
         run: |
