@@ -134,11 +134,7 @@ def fund_escrow_transaction(
     delivered exclusively to the customer.
     When PAYSTACK_SECRET_KEY is configured, funding MUST come through a verified Paystack webhook.
     """
-    locked = (
-        EscrowTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization")
-        .get(id=escrow.id)
-    )
+    locked = EscrowTransaction.objects.select_for_update().get(id=escrow.id)
 
     if not via_webhook:
         if actor is None or locked.customer_user_id != actor.id:
@@ -203,11 +199,7 @@ def submit_escrow_work(
     completion_notes: str = "",
 ) -> EscrowTransaction:
     """Artisan marks work completed and requests customer inspection & escrow release."""
-    locked = (
-        EscrowTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization")
-        .get(id=escrow.id)
-    )
+    locked = EscrowTransaction.objects.select_for_update().get(id=escrow.id)
     is_member = Membership.objects.filter(
         user=actor,
         organization=locked.organization,
@@ -250,11 +242,7 @@ def release_escrow_to_artisan(
     Customer inspects completed work and explicitly releases full escrow funds to the artisan.
     Artisans can NEVER release escrow funds to themselves.
     """
-    locked = (
-        EscrowTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization", "order")
-        .get(id=escrow.id)
-    )
+    locked = EscrowTransaction.objects.select_for_update().get(id=escrow.id)
 
     if locked.customer_user_id != actor.id:
         raise exceptions.PermissionDenied(
@@ -331,11 +319,7 @@ def dispute_escrow_transaction(
             {"reason": "Describe the issue clearly (at least 8 characters) so platform admins can investigate."}
         )
 
-    locked = (
-        EscrowTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization")
-        .get(id=escrow.id)
-    )
+    locked = EscrowTransaction.objects.select_for_update().get(id=escrow.id)
     if locked.customer_user_id != actor.id:
         raise exceptions.PermissionDenied("Only the customer who funded this escrow can raise a dispute.")
     if locked.status not in {
@@ -386,11 +370,7 @@ def resolve_escrow_dispute(
     if decision not in {"refund_customer", "release_to_artisan"}:
         raise exceptions.ValidationError({"decision": "Decision must be 'refund_customer' or 'release_to_artisan'."})
 
-    locked = (
-        EscrowTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization")
-        .get(id=escrow.id)
-    )
+    locked = EscrowTransaction.objects.select_for_update().get(id=escrow.id)
     if locked.status != EscrowTransaction.Status.DISPUTED:
         raise exceptions.ValidationError("Only disputed escrow transactions can be arbitrated.")
 

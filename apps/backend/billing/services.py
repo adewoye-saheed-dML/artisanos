@@ -169,8 +169,7 @@ def process_paystack_webhook_event(payload: dict) -> dict:
         from escrow.services import fund_escrow_transaction
 
         escrow = (
-            EscrowTransaction.objects.select_for_update(of=("self",))
-            .select_related("organization")
+            EscrowTransaction.objects.select_for_update()
             .filter(reference=reference)
             .first()
         )
@@ -189,8 +188,7 @@ def process_paystack_webhook_event(payload: dict) -> dict:
         return {"processed": True, "detail": f"Funded escrow {escrow.reference}."}
 
     tx = (
-        PaymentTransaction.objects.select_for_update(of=("self",))
-        .select_related("organization", "subscription", "plan")
+        PaymentTransaction.objects.select_for_update()
         .filter(reference=reference)
         .first()
     )
