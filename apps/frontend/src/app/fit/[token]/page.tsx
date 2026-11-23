@@ -56,12 +56,12 @@ export default function PublicFitPassportPage() {
         className="mezer-hero-glow pointer-events-none absolute -right-24 -top-24 h-[480px] w-[480px] rounded-full"
       />
       <div className="relative mx-auto max-w-2xl space-y-6">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand sm:h-9 sm:w-9">
               <Scissors className="h-4 w-4" />
             </div>
-            <span className="text-base font-extrabold tracking-tight text-plum">
+            <span className="truncate text-sm font-extrabold tracking-tight text-plum sm:text-base">
               ArtisanOS Fit Passport
             </span>
           </Link>

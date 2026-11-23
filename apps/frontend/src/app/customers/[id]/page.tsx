@@ -422,19 +422,19 @@ export default function CustomerDetailPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Link href="/customers" className="mt-1">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3">
+            <Link href="/customers" className="self-start sm:mt-1">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
             </Link>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="mezer-eyebrow">Customer Fit Passport</span>
                 {customer?.is_archived && <StatusBadge status="superseded" />}
               </div>
-              <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-plum sm:text-3xl">
+              <h1 className="mt-1 break-words text-xl font-extrabold tracking-tight text-plum sm:text-3xl">
                 {loadingCustomer ? "Loading customer..." : customer?.full_name}
               </h1>
               {customer && (

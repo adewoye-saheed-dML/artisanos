@@ -250,28 +250,30 @@ export default function RegisterPage() {
           </p>
 
           {/* Role Toggle: Artisan vs Customer */}
-          <div className="mx-auto mt-2 inline-flex rounded-full border border-line bg-surface p-1">
+          <div className="mx-auto mt-2 grid w-full max-w-md grid-cols-2 gap-1 rounded-2xl border border-line bg-surface p-1 sm:inline-flex sm:w-auto sm:max-w-none sm:rounded-full">
             <button
               type="button"
               onClick={() => setAccountType("artisan")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-colors sm:rounded-full sm:px-4 sm:py-1.5 ${
                 accountType === "artisan"
                   ? "bg-plum text-white shadow-sm"
                   : "text-ink-soft hover:text-plum"
               }`}
             >
-              <Store className="h-3.5 w-3.5" /> I am an Artisan / Business
+              <Store className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Artisan / Business</span>
             </button>
             <button
               type="button"
               onClick={() => setAccountType("customer")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition-colors sm:rounded-full sm:px-4 sm:py-1.5 ${
                 accountType === "customer"
                   ? "bg-plum text-white shadow-sm"
                   : "text-ink-soft hover:text-plum"
               }`}
             >
-              <UserCheck className="h-3.5 w-3.5" /> I am a Customer / Patron
+              <UserCheck className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Customer / Patron</span>
             </button>
           </div>
         </CardHeader>

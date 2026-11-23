@@ -150,3 +150,23 @@ class PlatformAdminOverviewSerializer(serializers.Serializer):
     total_users = serializers.IntegerField()
     total_customers = serializers.IntegerField()
     total_orders = serializers.IntegerField()
+
+
+class PlatformAdminLocationSyncRequestSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=["baseline", "full_inec"], default="baseline")
+    skip_geo = serializers.BooleanField(default=False, required=False)
+
+
+class PlatformAdminLocationSyncStatusSerializer(serializers.Serializer):
+    state = serializers.ChoiceField(choices=["idle", "running", "succeeded", "failed"])
+    mode = serializers.CharField(allow_blank=True)
+    last_message = serializers.CharField(allow_blank=True)
+    error = serializers.CharField(allow_blank=True)
+    started_at = serializers.DateTimeField(allow_null=True)
+    finished_at = serializers.DateTimeField(allow_null=True)
+    total_states = serializers.IntegerField()
+    total_lgas = serializers.IntegerField()
+    total_wards = serializers.IntegerField()
+    total_polling_units = serializers.IntegerField()
+    geolocated_polling_units = serializers.IntegerField()
+    is_full_inec_loaded = serializers.BooleanField()

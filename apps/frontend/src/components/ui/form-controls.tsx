@@ -18,7 +18,7 @@ export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElem
 }
 
 const controlBase =
-  "mt-1.5 block w-full rounded-xl border border-line bg-paper px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint/70 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-700/15 disabled:bg-surface disabled:text-ink-faint";
+  "mt-1.5 block w-full min-w-0 rounded-xl border border-line bg-paper px-3.5 py-2.5 text-base sm:text-sm text-ink placeholder:text-ink-faint/70 transition-colors focus:border-brand-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-700/15 disabled:bg-surface disabled:text-ink-faint";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (

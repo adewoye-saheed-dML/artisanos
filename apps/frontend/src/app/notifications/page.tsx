@@ -96,12 +96,12 @@ export default function NotificationsPage() {
               {data.results.map((item) => (
                 <div
                   key={item.id}
-                  className={`flex flex-wrap items-start justify-between gap-4 px-6 py-4 transition-colors ${
+                  className={`flex flex-wrap items-start justify-between gap-3 px-4 py-3.5 transition-colors sm:gap-4 sm:px-6 sm:py-4 ${
                     item.is_read ? "bg-white" : "bg-surface-blush"
                   }`}
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
                       {!item.is_read && <span className="h-2 w-2 rounded-full bg-brand-600" />}
                       <span className="text-sm font-bold text-plum">{item.title}</span>
                       <span className="rounded-full border border-line bg-white px-2.5 py-0.5 text-[10px] font-semibold text-ink-faint">

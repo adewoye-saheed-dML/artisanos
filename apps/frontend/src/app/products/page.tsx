@@ -380,12 +380,12 @@ export default function ProductsPage() {
         )}
 
         {/* Tabs & Action Row */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex rounded-full border border-line bg-white p-1 shadow-mezer-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <div className="flex w-full rounded-full border border-line bg-white p-1 shadow-mezer-sm sm:inline-flex sm:w-auto">
             <button
               type="button"
               onClick={() => setTab("catalogue")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors sm:flex-initial sm:px-4 ${
                 tab === "catalogue" ? "bg-plum text-white" : "text-ink-soft hover:text-plum"
               }`}
             >
@@ -394,11 +394,12 @@ export default function ProductsPage() {
             <button
               type="button"
               onClick={() => setTab("inquiries")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors sm:flex-initial sm:px-4 ${
                 tab === "inquiries" ? "bg-plum text-white" : "text-ink-soft hover:text-plum"
               }`}
             >
-              <Inbox className="h-3.5 w-3.5" /> Work Calls &amp; Inquiries
+              <Inbox className="h-3.5 w-3.5" />
+              <span className="truncate">Calls &amp; Inquiries</span>
               {newInquiryCount > 0 && (
                 <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
                   {newInquiryCount}
@@ -408,19 +409,19 @@ export default function ProductsPage() {
           </div>
 
           {tab === "catalogue" && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
               <Select
                 aria-label="Filter product type"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="mt-0 w-44 rounded-full bg-white py-2 text-xs shadow-mezer-sm"
+                className="mt-0 w-full rounded-full bg-white py-2 text-xs shadow-mezer-sm sm:w-44"
               >
                 <option value="">All listing types</option>
                 <option value="ready_made">Ready-Made</option>
                 <option value="made_to_order">Made to Order</option>
                 <option value="service">Service Listing</option>
               </Select>
-              <Button size="sm" onClick={() => setShowCreate((v) => !v)}>
+              <Button size="sm" className="w-full sm:w-auto" onClick={() => setShowCreate((v) => !v)}>
                 {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                 {showCreate ? "Close" : "Add product"}
               </Button>

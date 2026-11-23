@@ -3,8 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
+  Database,
   ExternalLink,
+  Loader2,
   Lock,
+  MapPin,
+  RefreshCw,
   Search,
   ShieldAlert,
   ShieldCheck,
@@ -25,6 +29,7 @@ import type {
   AuditLogItem,
   EscrowTransaction,
   Plan,
+  PlatformAdminLocationSyncStatus,
   PlatformAdminOrgSummary,
   PlatformAdminOverview,
 } from "@/types/api";
@@ -84,6 +89,39 @@ export default function PlatformAdminPage() {
         skipOrgHeader: true,
       }),
     enabled: isAdmin,
+  });
+
+  const { data: locationSync } = useQuery({
+    queryKey: ["platform-admin-locations-status"],
+    queryFn: () =>
+      apiRequest<PlatformAdminLocationSyncStatus>("/platform-admin/locations/status/", {
+        skipOrgHeader: true,
+      }),
+    enabled: isAdmin,
+    refetchInterval: (query) => (query.state.data?.state === "running" ? 4000 : false),
+  });
+
+  const syncLocationsMutation = useMutation({
+    mutationFn: (mode: "baseline" | "full_inec") =>
+      apiRequest<PlatformAdminLocationSyncStatus>("/platform-admin/locations/sync/", {
+        method: "POST",
+        skipOrgHeader: true,
+        body: JSON.stringify({ mode }),
+      }),
+    onSuccess: (res, mode) => {
+      queryClient.setQueryData(["platform-admin-locations-status"], res);
+      queryClient.invalidateQueries({ queryKey: ["platform-admin-audit-logs"] });
+      setActionError("");
+      setActionSuccess(
+        mode === "baseline"
+          ? "Nigeria baseline locations (37 States & 774 LGAs) verified and seeded."
+          : "Full INEC dataset background sync started — live progress will update below."
+      );
+    },
+    onError: (err) => {
+      setActionSuccess("");
+      setActionError(err instanceof Error ? err.message : "Could not trigger location sync.");
+    },
   });
 
   const kycDecisionMutation = useMutation({
@@ -218,52 +256,172 @@ export default function PlatformAdminPage() {
           </div>
 
           {overview && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <Card>
-                <CardContent className="p-5">
-                  <div className="text-xs font-bold uppercase tracking-wider text-ink-faint">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-faint sm:text-xs">
                     Organizations
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-plum">
+                  <div className="mt-1 text-xl font-extrabold text-plum sm:text-2xl">
                     {overview.total_organizations}
                   </div>
-                  <div className="text-xs text-ink-soft">
+                  <div className="text-[11px] text-ink-soft sm:text-xs">
                     {overview.active_organizations} active · {overview.suspended_organizations}{" "}
                     suspended
                   </div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-5">
-                  <div className="text-xs font-bold uppercase tracking-wider text-ink-faint">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-faint sm:text-xs">
                     Platform Users
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-plum">
+                  <div className="mt-1 text-xl font-extrabold text-plum sm:text-2xl">
                     {overview.total_users}
                   </div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-5">
-                  <div className="text-xs font-bold uppercase tracking-wider text-ink-faint">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-faint sm:text-xs">
                     Total Customers
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-plum">
+                  <div className="mt-1 text-xl font-extrabold text-plum sm:text-2xl">
                     {overview.total_customers}
                   </div>
                 </CardContent>
               </Card>
               <Card>
-                <CardContent className="p-5">
-                  <div className="text-xs font-bold uppercase tracking-wider text-ink-faint">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-ink-faint sm:text-xs">
                     Total Orders
                   </div>
-                  <div className="mt-1 text-2xl font-extrabold text-plum">
+                  <div className="mt-1 text-xl font-extrabold text-plum sm:text-2xl">
                     {overview.total_orders}
                   </div>
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* Zero-Shell Nigeria Locations & INEC Dataset Control Panel */}
+          {locationSync && (
+            <Card className="overflow-hidden border-brand-200/80">
+              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-2.5">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-blush text-brand-700">
+                    <MapPin className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold text-plum">
+                      Nigeria Locations &amp; INEC Dataset (Zero-Shell Sync)
+                    </h2>
+                    <p className="text-xs text-ink-faint">
+                      Run baseline seeding or full ~176k INEC Polling Units import directly from the
+                      browser—no Render Shell required.
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-bold sm:self-center ${
+                    locationSync.state === "running"
+                      ? "bg-amber-100 text-amber-900"
+                      : locationSync.is_full_inec_loaded
+                        ? "bg-emerald-100 text-emerald-900"
+                        : "bg-surface-blush text-brand-700"
+                  }`}
+                >
+                  {locationSync.state === "running" && (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  )}
+                  {locationSync.state === "running"
+                    ? "Syncing INEC..."
+                    : locationSync.is_full_inec_loaded
+                      ? "Full INEC Loaded"
+                      : "Baseline Ready"}
+                </span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  <div className="rounded-xl border border-line-soft bg-surface p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                      States
+                    </div>
+                    <div className="mt-0.5 text-lg font-extrabold text-plum">
+                      {locationSync.total_states.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-line-soft bg-surface p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                      LGAs
+                    </div>
+                    <div className="mt-0.5 text-lg font-extrabold text-plum">
+                      {locationSync.total_lgas.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-line-soft bg-surface p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                      Wards
+                    </div>
+                    <div className="mt-0.5 text-lg font-extrabold text-plum">
+                      {locationSync.total_wards.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-line-soft bg-surface p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-ink-faint">
+                      Polling Units
+                    </div>
+                    <div className="mt-0.5 text-lg font-extrabold text-plum">
+                      {locationSync.total_polling_units.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+
+                {(locationSync.last_message || locationSync.error) && (
+                  <div
+                    className={`rounded-xl border px-3.5 py-2.5 text-xs ${
+                      locationSync.error
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : "border-line bg-surface text-ink-soft"
+                    }`}
+                  >
+                    {locationSync.error || locationSync.last_message}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={
+                      syncLocationsMutation.isPending || locationSync.state === "running"
+                    }
+                    onClick={() => syncLocationsMutation.mutate("baseline")}
+                  >
+                    <Database className="h-3.5 w-3.5" />
+                    Seed Baseline (37 States / 774 LGAs)
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    disabled={
+                      syncLocationsMutation.isPending || locationSync.state === "running"
+                    }
+                    onClick={() => syncLocationsMutation.mutate("full_inec")}
+                  >
+                    {locationSync.state === "running" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    {locationSync.state === "running"
+                      ? "Syncing Full INEC Dataset..."
+                      : "Sync Full INEC Dataset (~176k PUs)"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {actionSuccess && (
@@ -300,7 +458,58 @@ export default function PlatformAdminPage() {
               <Building2 className="h-4 w-4 text-brand-700" />
               <h2 className="text-base font-bold text-plum">Tenant Organizations</h2>
             </CardHeader>
-            <div className="overflow-x-auto">
+
+            {/* Mobile Card List */}
+            <div className="divide-y divide-line-soft md:hidden">
+              {orgs?.map((o) => (
+                <div key={o.id} className="space-y-3 p-4 text-xs">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-bold text-plum">{o.name}</div>
+                      <div className="truncate text-xs text-ink-faint">
+                        /{o.slug} · <span className="capitalize">{o.category}</span>
+                      </div>
+                    </div>
+                    <StatusBadge status={o.is_active ? "active" : "suspended"} />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-ink-soft">
+                    <Users className="h-3.5 w-3.5" /> {o.member_count} members · {o.customer_count}{" "}
+                    customers · {o.order_count} orders
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <Select
+                      aria-label={`Plan for ${o.name}`}
+                      value={o.plan_code}
+                      className="mt-0 flex-1 py-1.5 text-xs"
+                      onChange={(e) =>
+                        assignPlanMutation.mutate({ orgId: o.id, planCode: e.target.value })
+                      }
+                    >
+                      {plans?.map((p) => (
+                        <option key={p.code} value={p.code}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant={o.is_active ? "danger" : "secondary"}
+                      onClick={() =>
+                        toggleStatusMutation.mutate({
+                          orgId: o.id,
+                          action: o.is_active ? "suspend" : "reactivate",
+                        })
+                      }
+                    >
+                      {o.is_active ? "Suspend" : "Reactivate"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
                   <tr>

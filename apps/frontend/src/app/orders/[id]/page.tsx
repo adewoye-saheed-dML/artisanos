@@ -172,16 +172,16 @@ export default function OrderDetailPage() {
     <AppShell>
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Link href="/orders" className="mt-1">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:gap-3">
+            <Link href="/orders" className="self-start sm:mt-1">
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4" />
                 Orders
               </Button>
             </Link>
-            <div>
+            <div className="min-w-0">
               <div className="mezer-eyebrow">Order Record</div>
-              <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-plum sm:text-3xl">
+              <h1 className="mt-1 break-words text-xl font-extrabold tracking-tight text-plum sm:text-3xl">
                 {order ? `${order.order_number} · ${order.garment_type}` : "Order Detail"}
               </h1>
               {order && (

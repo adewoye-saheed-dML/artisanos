@@ -220,7 +220,7 @@ function EscrowContent() {
       )}
 
       {activeOrganization && (
-        <div className="inline-flex rounded-full border border-line bg-white p-1 shadow-mezer-sm">
+        <div className="flex w-full rounded-full border border-line bg-white p-1 shadow-mezer-sm sm:inline-flex sm:w-auto">
           {(
             [
               ["all", "All Escrows"],
@@ -232,7 +232,7 @@ function EscrowContent() {
               key={val}
               type="button"
               onClick={() => setRoleView(val)}
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
+              className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-initial sm:px-4 ${
                 roleView === val ? "bg-plum text-white" : "text-ink-soft hover:text-plum"
               }`}
             >
@@ -286,7 +286,7 @@ function EscrowContent() {
                       <strong>{esc.customer_name}</strong> ({esc.customer_phone})
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <div className="text-xl font-extrabold text-plum">
                       {formatCurrency(esc.total_amount, esc.currency)}
                     </div>
@@ -300,7 +300,7 @@ function EscrowContent() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4 p-5">
+                <CardContent className="space-y-4 p-4 sm:p-5">
                   {esc.job_description && (
                     <p className="text-sm text-ink-soft">{esc.job_description}</p>
                   )}
@@ -416,10 +416,10 @@ function EscrowContent() {
                             ? "Artisan marked this job complete! Inspect the work, then enter your 6-digit Completion PIN to release full payment:"
                             : "Funds are safely locked in escrow. Only release after your work is satisfactorily completed:"}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                           <Input
                             maxLength={6}
-                            className="mt-0 w-44 bg-white font-mono tracking-widest"
+                            className="mt-0 w-full bg-white font-mono tracking-widest sm:w-44"
                             placeholder="6-digit PIN"
                             value={pinInputByEscrow[esc.id] || ""}
                             onChange={(e) =>
@@ -562,27 +562,29 @@ export default function EscrowPage() {
 
   return (
     <div className="min-h-screen bg-surface text-ink">
-      <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur-lg">
-        <div className="mx-auto flex min-h-[68px] max-w-[1100px] items-center justify-between px-5">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+      <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-lg">
+        <div className="mx-auto flex min-h-[64px] max-w-[1100px] items-center justify-between gap-2 px-4 sm:min-h-[68px] sm:px-5">
+          <Link href="/" className="flex min-w-0 items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand sm:h-9 sm:w-9">
               <Wrench className="h-4 w-4" />
             </div>
-            <span className="text-base font-extrabold tracking-tight text-plum">
+            <span className="truncate text-sm font-extrabold tracking-tight text-plum sm:text-base">
               ArtisanOS Escrow
             </span>
           </Link>
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-2">
             <Link href="/marketplace">
               <Button variant="outline" size="sm">
                 Nearby Artisans
               </Button>
             </Link>
-            <span className="text-xs font-semibold text-plum">{user.full_name}</span>
+            <span className="hidden text-xs font-semibold text-plum sm:inline">
+              {user.full_name}
+            </span>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1100px] px-5 py-8">
+      <main className="mx-auto max-w-[1100px] px-4 py-6 sm:px-5 sm:py-8">
         <EscrowContent />
       </main>
     </div>

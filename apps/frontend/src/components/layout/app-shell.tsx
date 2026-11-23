@@ -80,6 +80,20 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }, [isLoading, user, router]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mobileOpen]);
+
   if (isLoading) {
     return (
       <div className="mezer-hero-bg flex min-h-screen items-center justify-center">
@@ -145,7 +159,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   placeholder="e.g. Savile Lagos Bespoke"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="onboard-category">Category</Label>
                   <Select
@@ -181,94 +195,105 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   const sidebarContent = (
-    <div className="flex h-full flex-col justify-between bg-plum px-4 py-6 text-white">
-      <div>
-        <Link href="/" className="flex items-center gap-2.5 px-2 pb-6">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+    <div className="flex h-full max-h-[100dvh] flex-col bg-plum px-4 py-5 text-white">
+      <div className="flex shrink-0 items-center justify-between gap-2 px-1 pb-5">
+        <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
             <Wrench className="h-4 w-4" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="text-base font-extrabold tracking-tight text-white">ArtisanOS</div>
             <div className="text-[11px] font-medium text-plum-soft">Artisan Business OS</div>
           </div>
         </Link>
-
-        <div className="mb-6 rounded-2xl border border-white/10 bg-plum-surface p-3">
-          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#ffdce6]">
-            <Building2 className="h-3.5 w-3.5 text-brand-400" />
-            Active Workspace
-          </div>
-          <Select
-            aria-label="Switch active organization"
-            value={activeOrganization.id}
-            onChange={(e) => switchOrganization(e.target.value)}
-            className="mt-0 border-white/15 bg-plum text-xs font-medium text-white focus:border-brand-400 focus:bg-plum"
-          >
-            {user.memberships.map((m) => (
-              <option key={m.organization.id} value={m.organization.id} className="bg-plum text-white">
-                {m.organization.name} ({m.role})
-              </option>
-            ))}
-          </Select>
-          <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-plum-soft">
-            <span className="truncate">{getCategoryLabel(activeOrganization.category)}</span>
-            <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#ffdce6]">
-              {activeOrganization.ward_name || activeOrganization.currency}
-            </span>
-          </div>
-        </div>
-
-        <nav className="space-y-1.5" aria-label="Main navigation">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
-                  active
-                    ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-brand"
-                    : "text-plum-soft hover:bg-white/10 hover:text-white"
-                )}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </span>
-                {item.href === "/notifications" && unreadNotifications > 0 && (
-                  <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
-                    {unreadNotifications}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-          {user.is_platform_admin && (
-            <Link
-              href="/platform-admin"
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "mt-2 flex items-center gap-3 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold transition-all",
-                pathname.startsWith("/platform-admin")
-                  ? "bg-white text-plum shadow-md"
-                  : "text-[#ffdce6] hover:bg-white/10 hover:text-white"
-              )}
-            >
-              <ShieldAlert className="h-4 w-4" />
-              Platform Admin
-            </Link>
-          )}
-        </nav>
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileOpen(false)}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white hover:bg-white/15 lg:hidden"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      <div className="border-t border-white/10 pt-4">
-        <div className="mb-3 rounded-xl bg-white/[0.04] px-3 py-2.5">
+      <div className="mb-4 shrink-0 rounded-2xl border border-white/10 bg-plum-surface p-3">
+        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#ffdce6]">
+          <Building2 className="h-3.5 w-3.5 text-brand-400" />
+          Active Workspace
+        </div>
+        <Select
+          aria-label="Switch active organization"
+          value={activeOrganization.id}
+          onChange={(e) => switchOrganization(e.target.value)}
+          className="mt-0 border-white/15 bg-plum text-xs font-medium text-white focus:border-brand-400 focus:bg-plum"
+        >
+          {user.memberships.map((m) => (
+            <option key={m.organization.id} value={m.organization.id} className="bg-plum text-white">
+              {m.organization.name} ({m.role})
+            </option>
+          ))}
+        </Select>
+        <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-plum-soft">
+          <span className="truncate">{getCategoryLabel(activeOrganization.category)}</span>
+          <span className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-[#ffdce6]">
+            {activeOrganization.ward_name || activeOrganization.currency}
+          </span>
+        </div>
+      </div>
+
+      <nav
+        className="flex-1 space-y-1 overflow-y-auto pr-1 pb-4"
+        aria-label="Main navigation"
+      >
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center justify-between gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
+                active
+                  ? "bg-gradient-to-r from-brand-600 to-brand-700 text-white shadow-brand"
+                  : "text-plum-soft hover:bg-white/10 hover:text-white"
+              )}
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="truncate">{item.label}</span>
+              </span>
+              {item.href === "/notifications" && unreadNotifications > 0 && (
+                <span className="inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                  {unreadNotifications}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+        {user.is_platform_admin && (
+          <Link
+            href="/platform-admin"
+            onClick={() => setMobileOpen(false)}
+            className={cn(
+              "mt-2 flex items-center gap-3 rounded-full border border-white/15 px-4 py-2.5 text-sm font-semibold transition-all",
+              pathname.startsWith("/platform-admin")
+                ? "bg-white text-plum shadow-md"
+                : "text-[#ffdce6] hover:bg-white/10 hover:text-white"
+            )}
+          >
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+            <span className="truncate">Platform Admin</span>
+          </Link>
+        )}
+      </nav>
+
+      <div className="shrink-0 border-t border-white/10 pt-3.5">
+        <div className="mb-2.5 rounded-xl bg-white/[0.04] px-3 py-2">
           <div className="truncate text-sm font-semibold text-white">{user.full_name}</div>
           <div className="truncate text-xs text-plum-soft">{user.email}</div>
-          <div className="mt-1 text-[10px] font-bold uppercase tracking-wider text-brand-300">
+          <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-300">
             Role: {activeMembership?.role}
           </div>
         </div>
@@ -296,31 +321,48 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-paper/90 px-4 py-3 backdrop-blur-md lg:hidden">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-paper/95 px-3.5 py-2.5 backdrop-blur-md lg:hidden">
+        <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
             <Wrench className="h-4 w-4" />
           </div>
-          <div>
-            <div className="text-sm font-bold text-plum">{activeOrganization.name}</div>
-            <div className="text-[11px] font-medium text-ink-faint">ArtisanOS</div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold text-plum">{activeOrganization.name}</div>
+            <div className="truncate text-[11px] font-medium text-ink-faint">
+              ArtisanOS{activeOrganization.ward_name ? ` · ${activeOrganization.ward_name}` : ""}
+            </div>
           </div>
+        </Link>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Link
+            href="/notifications"
+            aria-label="Notifications"
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink hover:bg-surface-blush"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadNotifications > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-extrabold text-white">
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
+              </span>
+            )}
+          </Link>
+          <button
+            type="button"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-ink hover:bg-surface-blush"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label="Toggle navigation menu"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="rounded-full border border-line bg-white p-2 text-ink hover:bg-surface-blush"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
       </header>
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
-          <div className="w-72 max-w-[85vw]">{sidebarContent}</div>
+        <div className="fixed inset-0 z-50 flex lg:hidden">
+          <div className="h-full w-72 max-w-[85vw] shadow-2xl">{sidebarContent}</div>
           <div
-            className="flex-1 bg-plum/50 backdrop-blur-xs"
+            className="flex-1 bg-plum/60 backdrop-blur-xs"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />
@@ -328,8 +370,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       )}
 
       {/* Main content */}
-      <main className="flex-1 lg:pl-64">
-        <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-9">{children}</div>
+      <main className="min-w-0 flex-1 lg:pl-64">
+        <div className="mx-auto max-w-6xl px-3.5 py-5 sm:px-6 sm:py-7 lg:px-9">{children}</div>
       </main>
     </div>
   );

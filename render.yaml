@@ -27,8 +27,7 @@ services:
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     startCommand: >-
       python manage.py migrate --noinput &&
-      python manage.py seed_templates &&
-      python manage.py seed_plans &&
+      python manage.py bootstrap_deploy &&
       gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
     healthCheckPath: /api/v1/health/
     envVars:
@@ -60,6 +59,14 @@ services:
         value: "False"
       - key: PAYSTACK_SECRET_KEY
         sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_FULL_NAME
+        value: "Platform Admin"
+      - key: SEED_DEMO_DATA
+        value: "False"
 
   - type: web
     name: artisanos-web-stage
@@ -91,7 +98,7 @@ services:
     rootDir: apps/backend
     plan: starter
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput && python manage.py seed_templates && python manage.py seed_plans
+    preDeployCommand: python manage.py migrate --noinput && python manage.py bootstrap_deploy
     startCommand: gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
     healthCheckPath: /api/v1/health/
     envVars:
@@ -123,6 +130,14 @@ services:
         value: "False"
       - key: PAYSTACK_SECRET_KEY
         sync: false
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
+      - key: DJANGO_SUPERUSER_FULL_NAME
+        value: "Platform Admin"
+      - key: SEED_DEMO_DATA
+        value: "False"
 
   - type: web
     name: artisanos-web-prod

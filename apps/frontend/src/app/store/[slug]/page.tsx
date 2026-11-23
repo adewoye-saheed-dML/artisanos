@@ -178,18 +178,19 @@ export default function PublicStorefrontPage() {
 
   return (
     <div className="min-h-screen bg-paper text-ink">
-      <header className="sticky top-0 z-30 border-b border-line bg-paper/90 backdrop-blur-lg">
-        <div className="mx-auto flex min-h-[68px] max-w-[1180px] items-center justify-between gap-3 px-5">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-lg">
+        <div className="mx-auto flex min-h-[64px] max-w-[1180px] items-center justify-between gap-2 px-4 sm:min-h-[68px] sm:gap-3 sm:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <Link
               href="/marketplace"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-ink-soft hover:text-brand-700"
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-soft hover:border-brand-300 hover:text-brand-700 sm:border-0 sm:bg-transparent sm:p-0"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Marketplace
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Marketplace</span>
             </Link>
-            <span className="text-line">|</span>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+            <span className="hidden text-line sm:inline">|</span>
+            <Link href="/" className="flex min-w-0 items-center gap-2">
+              <div className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand sm:flex">
                 <Wrench className="h-4 w-4" />
               </div>
               <span className="truncate text-sm font-extrabold tracking-tight text-plum">
@@ -198,7 +199,7 @@ export default function PublicStorefrontPage() {
             </Link>
           </div>
           {sf && (
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
               {telHref && (
                 <a href={telHref} className="hidden sm:inline-block">
                   <Button size="sm" variant="outline">
@@ -206,9 +207,10 @@ export default function PublicStorefrontPage() {
                   </Button>
                 </a>
               )}
-              <Button size="sm" onClick={() => openCalloutModal(null)}>
+              <Button size="sm" className="px-3 sm:px-4" onClick={() => openCalloutModal(null)}>
                 <Briefcase className="h-3.5 w-3.5" />
-                Call for work
+                <span className="hidden sm:inline">Call for work</span>
+                <span className="sm:hidden">Book</span>
               </Button>
             </div>
           )}
@@ -245,12 +247,12 @@ export default function PublicStorefrontPage() {
       {sf && data && (
         <>
           {/* Velvet Plum Artisan Hero */}
-          <section className="relative overflow-hidden bg-plum py-14 text-white">
+          <section className="relative overflow-hidden bg-plum py-10 text-white sm:py-14">
             <div
               aria-hidden="true"
               className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-500/25 blur-3xl"
             />
-            <div className="relative mx-auto max-w-[1180px] space-y-5 px-5">
+            <div className="relative mx-auto max-w-[1180px] space-y-5 px-4 sm:px-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="mezer-eyebrow-light">
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />

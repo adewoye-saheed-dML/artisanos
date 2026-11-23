@@ -796,6 +796,21 @@ export interface PlatformAdminOverview {
   total_orders: number;
 }
 
+export interface PlatformAdminLocationSyncStatus {
+  state: "idle" | "running" | "succeeded" | "failed";
+  mode: string;
+  last_message: string;
+  error: string;
+  started_at: string | null;
+  finished_at: string | null;
+  total_states: number;
+  total_lgas: number;
+  total_wards: number;
+  total_polling_units: number;
+  geolocated_polling_units: number;
+  is_full_inec_loaded: boolean;
+}
+
 export interface PlatformAdminOrgSummary {
   id: string;
   name: string;

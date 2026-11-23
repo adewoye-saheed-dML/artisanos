@@ -354,8 +354,73 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* Active & Suspended Members Table */}
-            <div className="overflow-x-auto rounded-mezer-sm border border-line">
+            {/* Active & Suspended Members (Mobile Cards) */}
+            <div className="divide-y divide-line-soft rounded-mezer-sm border border-line bg-white sm:hidden">
+              {members?.map((m) => {
+                const isSelf = m.user_id === user?.id;
+                const canManageTarget =
+                  canEdit &&
+                  !isSelf &&
+                  (isOwner || (m.role !== "owner" && m.role !== "manager"));
+                return (
+                  <div key={m.id} className="space-y-2.5 p-3.5 text-xs">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-plum">
+                          {m.full_name}{" "}
+                          {isSelf && <span className="text-xs text-ink-faint">(You)</span>}
+                        </div>
+                        <div className="truncate text-xs text-ink-faint">{m.email}</div>
+                      </div>
+                      <StatusBadge status={m.status} />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      {canManageTarget ? (
+                        <Select
+                          aria-label={`Role for ${m.full_name}`}
+                          value={m.role}
+                          className="mt-0 flex-1 py-1.5 text-xs"
+                          onChange={(e) =>
+                            updateMemberMutation.mutate({
+                              memberId: m.id,
+                              payload: { role: e.target.value as MembershipRole },
+                            })
+                          }
+                        >
+                          {isOwner && <option value="owner">Owner</option>}
+                          {isOwner && <option value="manager">Manager</option>}
+                          <option value="artisan">Artisan</option>
+                          <option value="sales_assistant">Sales Assistant</option>
+                        </Select>
+                      ) : (
+                        <span className="font-medium capitalize text-ink">
+                          {m.role.replace("_", " ")}
+                        </span>
+                      )}
+                      {canManageTarget && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            updateMemberMutation.mutate({
+                              memberId: m.id,
+                              payload: {
+                                status: m.status === "active" ? "suspended" : "active",
+                              },
+                            })
+                          }
+                        >
+                          {m.status === "active" ? "Suspend" : "Reactivate"}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Active & Suspended Members Table (Desktop) */}
+            <div className="hidden overflow-x-auto rounded-mezer-sm border border-line sm:block">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
                   <tr>

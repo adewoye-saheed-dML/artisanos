@@ -431,64 +431,107 @@ function OrdersContent() {
                 </p>
               </CardContent>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                    <tr>
-                      <th className="px-6 py-3.5">Order</th>
-                      <th className="px-6 py-3.5">Customer</th>
-                      <th className="px-6 py-3.5">Status</th>
-                      <th className="hidden px-6 py-3.5 sm:table-cell">Quote / Deposit</th>
-                      <th className="hidden px-6 py-3.5 md:table-cell">Created</th>
-                      <th className="px-6 py-3.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line-soft">
-                    {ordersData.results.map((order) => (
-                      <tr key={order.id} className="transition-colors hover:bg-surface-blush/60">
-                        <td className="px-6 py-4">
+              <>
+                {/* Mobile Card List */}
+                <div className="divide-y divide-line-soft sm:hidden">
+                  {ordersData.results.map((order) => (
+                    <div key={order.id} className="space-y-2.5 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
                           <Link
                             href={`/orders/${order.id}`}
-                            className="font-semibold text-plum hover:text-brand-700 hover:underline"
+                            className="block truncate text-sm font-bold text-plum hover:text-brand-700"
                           >
-                            {order.order_number}
+                            {order.order_number} · {order.garment_type}
                           </Link>
-                          <div className="text-xs text-ink-soft">{order.garment_type}</div>
-                        </td>
-                        <td className="px-6 py-4">
                           <Link
                             href={`/customers/${order.customer}`}
-                            className="text-ink-soft hover:text-brand-700 hover:underline"
+                            className="text-xs text-ink-soft hover:text-brand-700"
                           >
                             {order.customer_name}
                           </Link>
-                        </td>
-                        <td className="px-6 py-4">
-                          <StatusBadge status={order.status} />
-                        </td>
-                        <td className="hidden px-6 py-4 sm:table-cell">
-                          <div className="font-semibold text-plum">
+                        </div>
+                        <StatusBadge status={order.status} />
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <div>
+                          <div className="text-xs font-bold text-plum">
                             {formatCurrency(order.quoted_amount, order.currency)}
                           </div>
-                          <div className="text-xs text-ink-faint">
+                          <div className="text-[11px] text-ink-faint">
                             Deposit: {formatCurrency(order.deposit_amount, order.currency)}
                           </div>
-                        </td>
-                        <td className="hidden px-6 py-4 text-xs text-ink-faint md:table-cell">
-                          {formatDateTime(order.created_at)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Link href={`/orders/${order.id}`}>
-                            <Button size="sm" variant="outline">
-                              Manage
-                            </Button>
-                          </Link>
-                        </td>
+                        </div>
+                        <Link href={`/orders/${order.id}`}>
+                          <Button size="sm" variant="outline">
+                            Manage
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+                      <tr>
+                        <th className="px-6 py-3.5">Order</th>
+                        <th className="px-6 py-3.5">Customer</th>
+                        <th className="px-6 py-3.5">Status</th>
+                        <th className="hidden px-6 py-3.5 sm:table-cell">Quote / Deposit</th>
+                        <th className="hidden px-6 py-3.5 md:table-cell">Created</th>
+                        <th className="px-6 py-3.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-line-soft">
+                      {ordersData.results.map((order) => (
+                        <tr key={order.id} className="transition-colors hover:bg-surface-blush/60">
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/orders/${order.id}`}
+                              className="font-semibold text-plum hover:text-brand-700 hover:underline"
+                            >
+                              {order.order_number}
+                            </Link>
+                            <div className="text-xs text-ink-soft">{order.garment_type}</div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/customers/${order.customer}`}
+                              className="text-ink-soft hover:text-brand-700 hover:underline"
+                            >
+                              {order.customer_name}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4">
+                            <StatusBadge status={order.status} />
+                          </td>
+                          <td className="hidden px-6 py-4 sm:table-cell">
+                            <div className="font-semibold text-plum">
+                              {formatCurrency(order.quoted_amount, order.currency)}
+                            </div>
+                            <div className="text-xs text-ink-faint">
+                              Deposit: {formatCurrency(order.deposit_amount, order.currency)}
+                            </div>
+                          </td>
+                          <td className="hidden px-6 py-4 text-xs text-ink-faint md:table-cell">
+                            {formatDateTime(order.created_at)}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Link href={`/orders/${order.id}`}>
+                              <Button size="sm" variant="outline">
+                                Manage
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
         )}

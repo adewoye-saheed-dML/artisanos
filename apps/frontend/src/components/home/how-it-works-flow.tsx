@@ -227,28 +227,28 @@ export function HowItWorksFlow() {
             reliable local artisans.
           </p>
 
-          <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] p-1.5">
+          <div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-1.5 rounded-full border border-white/15 bg-white/[0.06] p-1.5 sm:mx-auto sm:inline-flex sm:w-auto sm:max-w-none">
             <button
               type="button"
               onClick={() => setPersona("customer")}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all duration-300 sm:text-sm ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all duration-300 sm:gap-2 sm:px-5 sm:text-sm ${
                 persona === "customer"
                   ? "bg-gradient-to-r from-brand-500 to-brand-700 text-white shadow-brand"
                   : "text-plum-soft hover:text-white"
               }`}
             >
-              <UserCheck className="h-4 w-4" /> For Customers
+              <UserCheck className="h-4 w-4 shrink-0" /> For Customers
             </button>
             <button
               type="button"
               onClick={() => setPersona("artisan")}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-xs font-bold transition-all duration-300 sm:text-sm ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all duration-300 sm:gap-2 sm:px-5 sm:text-sm ${
                 persona === "artisan"
                   ? "bg-gradient-to-r from-brand-500 to-brand-700 text-white shadow-brand"
                   : "text-plum-soft hover:text-white"
               }`}
             >
-              <Store className="h-4 w-4" /> For Artisans
+              <Store className="h-4 w-4 shrink-0" /> For Artisans
             </button>
           </div>
         </div>
@@ -329,21 +329,21 @@ export function HowItWorksFlow() {
               return (
                 <div
                   key={`slide-${persona}-${step.number}`}
-                  className="w-full shrink-0 p-6 sm:p-9 lg:p-10"
+                  className="w-full shrink-0 p-4 sm:p-9 lg:p-10"
                 >
                   <div
-                    className={`grid items-center gap-8 transition-opacity duration-500 lg:grid-cols-[1.15fr_0.85fr] ${
+                    className={`grid items-center gap-6 transition-opacity duration-500 sm:gap-8 lg:grid-cols-[1.15fr_0.85fr] ${
                       isFocused ? "opacity-100" : "opacity-40"
                     }`}
                   >
                     {/* Left: Clear Step Explanation */}
-                    <div className="space-y-4">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/20 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-[#ffdce6]">
-                        <StepIcon className="h-3.5 w-3.5" />
+                    <div className="space-y-3.5 sm:space-y-4">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-brand-500/20 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wider text-[#ffdce6]">
+                        <StepIcon className="h-3.5 w-3.5 shrink-0" />
                         Step {step.number} · {step.label}
                       </div>
 
-                      <h3 className="text-2xl font-extrabold leading-snug text-white sm:text-[1.7rem]">
+                      <h3 className="text-xl font-extrabold leading-snug text-white sm:text-[1.7rem]">
                         {step.headline}
                       </h3>
 
@@ -351,9 +351,9 @@ export function HowItWorksFlow() {
                         {step.body}
                       </p>
 
-                      <div className="pt-2">
+                      <div className="pt-1 sm:pt-2">
                         <Link href={persona === "customer" ? "/marketplace" : "/register"}>
-                          <Button size="sm">
+                          <Button size="sm" className="w-full sm:w-auto">
                             {persona === "customer"
                               ? "Explore nearby artisans"
                               : "Register your business"}
@@ -365,16 +365,16 @@ export function HowItWorksFlow() {
 
                     {/* Right: Structured Visual State Card */}
                     <div
-                      className={`rounded-mezer-md border border-white/15 bg-plum/95 p-5 shadow-phone transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6 ${
+                      className={`rounded-mezer-md border border-white/15 bg-plum/95 p-4 shadow-phone transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:p-6 ${
                         isFocused ? "translate-y-0 scale-100" : "translate-y-2 scale-[0.98]"
                       }`}
                     >
-                      <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
-                        <div>
+                      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3.5">
+                        <div className="min-w-0">
                           <div className="text-[11px] font-bold uppercase tracking-wider text-brand-300">
                             {step.previewEyebrow}
                           </div>
-                          <div className="mt-1 text-base font-extrabold text-white">
+                          <div className="mt-1 break-words text-sm font-extrabold text-white sm:text-base">
                             {step.previewTitle}
                           </div>
                           <div className="text-xs text-plum-soft">{step.previewSubtitle}</div>
@@ -388,11 +388,11 @@ export function HowItWorksFlow() {
                         {step.previewRows.map((row) => (
                           <div
                             key={row.label}
-                            className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-xs"
+                            className="flex flex-col gap-0.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-2.5 text-xs sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                           >
-                            <span className="text-plum-soft">{row.label}</span>
+                            <span className="shrink-0 text-plum-soft">{row.label}</span>
                             <span
-                              className={`inline-flex items-center gap-1 text-right font-bold ${
+                              className={`inline-flex items-center gap-1 break-words font-bold sm:text-right ${
                                 row.highlight ? "text-emerald-300" : "text-white"
                               }`}
                             >

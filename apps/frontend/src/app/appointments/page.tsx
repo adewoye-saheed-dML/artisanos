@@ -430,17 +430,31 @@ function AppointmentsContent() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                    <div key={d} className="py-1">
-                      {d}
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase tracking-wider text-ink-faint sm:gap-1.5 sm:text-[11px]">
+                  {[
+                    ["S", "Sun"],
+                    ["M", "Mon"],
+                    ["T", "Tue"],
+                    ["W", "Wed"],
+                    ["T", "Thu"],
+                    ["F", "Fri"],
+                    ["S", "Sat"],
+                  ].map(([short, full]) => (
+                    <div key={full} className="py-1">
+                      <span className="sm:hidden">{short}</span>
+                      <span className="hidden sm:inline">{full}</span>
                     </div>
                   ))}
                 </div>
-                <div className="mt-1.5 grid grid-cols-7 gap-1.5">
+                <div className="mt-1.5 grid grid-cols-7 gap-1 sm:gap-1.5">
                   {calendarDays.map((cell) => {
                     if (!cell.date) {
-                      return <div key={cell.key} className="h-20 rounded-xl bg-surface/40" />;
+                      return (
+                        <div
+                          key={cell.key}
+                          className="h-12 rounded-lg bg-surface/40 sm:h-20 sm:rounded-xl"
+                        />
+                      );
                     }
                     const dayItems = appointmentsByDay[cell.key] || [];
                     const isSelected = selectedDayKey === cell.key;
@@ -452,7 +466,7 @@ function AppointmentsContent() {
                         onClick={() =>
                           setSelectedDayKey((cur) => (cur === cell.key ? null : cell.key))
                         }
-                        className={`flex h-20 flex-col items-start justify-between rounded-xl border p-2 text-left transition-all ${
+                        className={`flex h-12 flex-col items-center justify-between rounded-lg border p-1 text-center transition-all sm:h-20 sm:items-start sm:rounded-xl sm:p-2 sm:text-left ${
                           isSelected
                             ? "border-brand-700 bg-surface-blush ring-2 ring-brand-700/20"
                             : "border-line-soft bg-white hover:border-brand-300"
@@ -466,9 +480,14 @@ function AppointmentsContent() {
                           {cell.date.getDate()}
                         </span>
                         {dayItems.length > 0 && (
-                          <span className="w-full truncate rounded-full bg-brand-100/80 px-2 py-0.5 text-[10px] font-bold text-brand-800">
-                            {dayItems.length} {dayItems.length === 1 ? "fitting" : "fittings"}
-                          </span>
+                          <>
+                            <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[9px] font-extrabold text-white sm:hidden">
+                              {dayItems.length}
+                            </span>
+                            <span className="hidden w-full truncate rounded-full bg-brand-100/80 px-2 py-0.5 text-[10px] font-bold text-brand-800 sm:inline-block">
+                              {dayItems.length} {dayItems.length === 1 ? "fitting" : "fittings"}
+                            </span>
+                          </>
                         )}
                       </button>
                     );

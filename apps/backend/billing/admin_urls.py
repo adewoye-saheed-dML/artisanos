@@ -6,6 +6,8 @@ from .admin_views import (
     PlatformAdminAuditLogListView,
     PlatformAdminEscrowDisputeListView,
     PlatformAdminEscrowResolveView,
+    PlatformAdminLocationSyncStatusView,
+    PlatformAdminLocationSyncTriggerView,
     PlatformAdminOrganizationListView,
     PlatformAdminOverviewView,
     PlatformAdminReactivateOrgView,
@@ -58,4 +60,14 @@ urlpatterns = [
         name="platform-admin-escrow-resolve",
     ),
     path("audit-logs/", PlatformAdminAuditLogListView.as_view(), name="platform-admin-audit-logs"),
+    path(
+        "locations/status/",
+        PlatformAdminLocationSyncStatusView.as_view(),
+        name="platform-admin-locations-status",
+    ),
+    path(
+        "locations/sync/",
+        PlatformAdminLocationSyncTriggerView.as_view(),
+        name="platform-admin-locations-sync",
+    ),
 ]

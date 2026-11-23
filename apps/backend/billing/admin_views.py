@@ -1,6 +1,9 @@
-from django.db import transaction
+import threading
+
+from django.db import close_old_connections, transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import BasePermission
@@ -12,6 +15,9 @@ from customers.models import Customer
 from escrow.models import EscrowTransaction
 from escrow.serializers import EscrowResolveSerializer, EscrowTransactionSerializer
 from escrow.services import resolve_escrow_dispute
+from locations.inec_importer import sync_full_inec_dataset
+from locations.models import NigerianLGA, NigerianState, NigerianWard, PollingUnit
+from locations.seed import seed_nigeria_locations
 from orders.models import Order
 from organizations.kyc_services import approve_artisan_kyc, reject_artisan_kyc
 from organizations.models import ArtisanVerification, Membership, Organization
@@ -23,10 +29,79 @@ from .serializers import (
     AuditLogSerializer,
     PlatformAdminActionSerializer,
     PlatformAdminAssignPlanSerializer,
+    PlatformAdminLocationSyncRequestSerializer,
+    PlatformAdminLocationSyncStatusSerializer,
     PlatformAdminOrgSummarySerializer,
     PlatformAdminOverviewSerializer,
 )
 from .services import get_or_create_subscription
+
+_LOCATION_SYNC_LOCK = threading.RLock()
+_LOCATION_SYNC_STATE: dict[str, object] = {
+    "state": "idle",
+    "mode": "",
+    "last_message": "",
+    "error": "",
+    "started_at": None,
+    "finished_at": None,
+}
+
+
+def _build_location_sync_payload() -> dict[str, object]:
+    total_pus = PollingUnit.objects.count()
+    with _LOCATION_SYNC_LOCK:
+        snapshot = dict(_LOCATION_SYNC_STATE)
+    snapshot.update(
+        {
+            "total_states": NigerianState.objects.count(),
+            "total_lgas": NigerianLGA.objects.count(),
+            "total_wards": NigerianWard.objects.count(),
+            "total_polling_units": total_pus,
+            "geolocated_polling_units": PollingUnit.objects.filter(
+                latitude__isnull=False, longitude__isnull=False
+            ).count(),
+            "is_full_inec_loaded": total_pus >= 100000,
+        }
+    )
+    return snapshot
+
+
+def _run_full_inec_background(actor_id, skip_geo: bool) -> None:
+    close_old_connections()
+    try:
+        def _progress(msg: str) -> None:
+            with _LOCATION_SYNC_LOCK:
+                _LOCATION_SYNC_STATE["last_message"] = msg
+
+        stats = sync_full_inec_dataset(
+            include_geo_enrichment=not skip_geo,
+            progress_callback=_progress,
+        )
+        summary = (
+            f"INEC sync complete: {stats['total_states']} states, {stats['total_lgas']} LGAs, "
+            f"{stats['total_wards']} wards, {stats['total_polling_units']} polling units "
+            f"({stats['geolocated_polling_units']} geolocated)."
+        )
+        AuditLog.objects.create(
+            actor_id=actor_id,
+            action="locations_full_inec_synced",
+            target_type="Locations",
+            target_id="nigeria_inec",
+            reason=summary,
+            metadata=stats,
+        )
+        with _LOCATION_SYNC_LOCK:
+            _LOCATION_SYNC_STATE["state"] = "succeeded"
+            _LOCATION_SYNC_STATE["last_message"] = summary
+            _LOCATION_SYNC_STATE["error"] = ""
+            _LOCATION_SYNC_STATE["finished_at"] = timezone.now()
+    except Exception as exc:  # pragma: no cover - network/dataset runtime error
+        with _LOCATION_SYNC_LOCK:
+            _LOCATION_SYNC_STATE["state"] = "failed"
+            _LOCATION_SYNC_STATE["error"] = str(exc)
+            _LOCATION_SYNC_STATE["finished_at"] = timezone.now()
+    finally:
+        close_old_connections()
 
 
 class IsPlatformAdmin(BasePermission):
@@ -286,4 +361,95 @@ class PlatformAdminEscrowResolveView(APIView):
         return Response(
             EscrowTransactionSerializer(resolved, context={"request": request}).data,
             status=status.HTTP_200_OK,
+        )
+
+
+class PlatformAdminLocationSyncStatusView(APIView):
+    """Inspect live Nigerian geographic dataset counts and background INEC sync state (no Shell needed)."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(responses={200: PlatformAdminLocationSyncStatusSerializer})
+    def get(self, request):
+        payload = _build_location_sync_payload()
+        return Response(PlatformAdminLocationSyncStatusSerializer(payload).data)
+
+
+class PlatformAdminLocationSyncTriggerView(APIView):
+    """Trigger baseline Nigeria location seed or full INEC dataset sync directly from Platform Admin."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(
+        request=PlatformAdminLocationSyncRequestSerializer,
+        responses={200: PlatformAdminLocationSyncStatusSerializer, 202: PlatformAdminLocationSyncStatusSerializer},
+    )
+    def post(self, request):
+        serializer = PlatformAdminLocationSyncRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        mode = serializer.validated_data["mode"]
+        skip_geo = serializer.validated_data.get("skip_geo", False)
+
+        with _LOCATION_SYNC_LOCK:
+            if _LOCATION_SYNC_STATE["state"] == "running":
+                payload = _build_location_sync_payload()
+                return Response(
+                    PlatformAdminLocationSyncStatusSerializer(payload).data,
+                    status=status.HTTP_202_ACCEPTED,
+                )
+
+        if mode == "baseline":
+            now = timezone.now()
+            stats = seed_nigeria_locations()
+            summary = (
+                f"Baseline Nigeria locations ready: {stats['total_states']} states, "
+                f"{stats['total_lgas']} LGAs, {stats['total_wards']} wards, "
+                f"{stats['total_polling_units']} polling units."
+            )
+            AuditLog.objects.create(
+                actor=request.user,
+                action="locations_baseline_seeded",
+                target_type="Locations",
+                target_id="nigeria_baseline",
+                reason=summary,
+                metadata=stats,
+            )
+            with _LOCATION_SYNC_LOCK:
+                _LOCATION_SYNC_STATE.update(
+                    {
+                        "state": "succeeded",
+                        "mode": "baseline",
+                        "last_message": summary,
+                        "error": "",
+                        "started_at": now,
+                        "finished_at": timezone.now(),
+                    }
+                )
+            payload = _build_location_sync_payload()
+            return Response(
+                PlatformAdminLocationSyncStatusSerializer(payload).data,
+                status=status.HTTP_200_OK,
+            )
+
+        with _LOCATION_SYNC_LOCK:
+            _LOCATION_SYNC_STATE.update(
+                {
+                    "state": "running",
+                    "mode": "full_inec",
+                    "last_message": "Starting background INEC dataset download & bulk import...",
+                    "error": "",
+                    "started_at": timezone.now(),
+                    "finished_at": None,
+                }
+            )
+        worker = threading.Thread(
+            target=_run_full_inec_background,
+            args=(request.user.id, skip_geo),
+            daemon=True,
+        )
+        worker.start()
+        payload = _build_location_sync_payload()
+        return Response(
+            PlatformAdminLocationSyncStatusSerializer(payload).data,
+            status=status.HTTP_202_ACCEPTED,
         )

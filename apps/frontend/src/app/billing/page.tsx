@@ -158,7 +158,7 @@ export default function BillingPage() {
 
             {/* Plan Comparison */}
             <div>
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-extrabold text-plum">Available Plans</h2>
                 <span className="inline-flex items-center gap-1.5 text-xs text-ink-faint">
                   <ShieldCheck className="h-4 w-4 text-brand-700" />

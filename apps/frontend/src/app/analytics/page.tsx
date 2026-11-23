@@ -279,15 +279,15 @@ export default function AnalyticsPage() {
                     data.top_garment_types.map((g) => (
                       <div
                         key={g.garment_type}
-                        className="flex items-center justify-between px-6 py-3.5"
+                        className="flex items-center justify-between gap-3 px-4 py-3.5 sm:px-6"
                       >
-                        <div>
-                          <div className="text-sm font-bold text-plum">{g.garment_type}</div>
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-bold text-plum">{g.garment_type}</div>
                           <div className="text-xs text-ink-faint">
                             {g.count} {g.count === 1 ? "order" : "orders"}
                           </div>
                         </div>
-                        <span className="text-sm font-bold text-brand-700">
+                        <span className="shrink-0 text-sm font-bold text-brand-700">
                           {formatCurrency(g.quoted_total, data.currency)}
                         </span>
                       </div>

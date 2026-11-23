@@ -192,23 +192,23 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent className="divide-y divide-line-soft p-0">
                     {data.recent_orders.length === 0 ? (
-                      <p className="p-6 text-sm text-ink-faint">No orders recorded yet.</p>
+                      <p className="p-4 text-sm text-ink-faint sm:p-6">No orders recorded yet.</p>
                     ) : (
                       data.recent_orders.map((order) => (
                         <Link
                           key={order.id}
                           href={`/orders/${order.id}`}
-                          className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface-blush"
+                          className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-surface-blush sm:px-6 sm:py-4"
                         >
-                          <div>
-                            <div className="text-sm font-semibold text-plum">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-plum">
                               {order.order_number} · {order.garment_type}
                             </div>
-                            <div className="mt-0.5 text-xs text-ink-soft">
+                            <div className="mt-0.5 truncate text-xs text-ink-soft">
                               {order.customer_name} · {formatCurrency(order.quoted_amount, order.currency)}
                             </div>
                           </div>
-                          <StatusBadge status={order.status} />
+                          <StatusBadge status={order.status} className="shrink-0" />
                         </Link>
                       ))
                     )}
@@ -227,21 +227,21 @@ export default function DashboardPage() {
                   </CardHeader>
                   <CardContent className="divide-y divide-line-soft p-0">
                     {data.recent_customers.length === 0 ? (
-                      <p className="p-6 text-sm text-ink-faint">No customers added yet.</p>
+                      <p className="p-4 text-sm text-ink-faint sm:p-6">No customers added yet.</p>
                     ) : (
                       data.recent_customers.map((customer) => (
                         <Link
                           key={customer.id}
                           href={`/customers/${customer.id}`}
-                          className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-surface-blush"
+                          className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-surface-blush sm:px-6 sm:py-4"
                         >
-                          <div>
-                            <div className="text-sm font-semibold text-plum">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-plum">
                               {customer.full_name}
                             </div>
-                            <div className="mt-0.5 text-xs text-ink-soft">{customer.phone}</div>
+                            <div className="mt-0.5 truncate text-xs text-ink-soft">{customer.phone}</div>
                           </div>
-                          <div className="text-xs text-ink-faint">
+                          <div className="shrink-0 text-xs text-ink-faint">
                             {formatDateTime(customer.created_at)}
                           </div>
                         </Link>

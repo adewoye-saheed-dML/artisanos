@@ -59,11 +59,11 @@ Repeat these 3 steps for **Staging** (branch `stage`) and **Production** (branch
      pip install -r requirements.txt && python manage.py collectstatic --noinput
      ```
    - **Start Command**:
-     - On **Free plan**:
+     - On **Free plan (Zero-Shell)**:
        ```bash
-       python manage.py migrate --noinput && python manage.py seed_templates && python manage.py seed_plans && gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+       python manage.py migrate --noinput && python manage.py bootstrap_deploy && gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
        ```
-     - On **Paid plan (Starter+)**: put `python manage.py migrate --noinput && python manage.py seed_templates && python manage.py seed_plans` in **Pre-Deploy Command** and set **Start Command** to:
+     - On **Paid plan (Starter+)**: put `python manage.py migrate --noinput && python manage.py bootstrap_deploy` in **Pre-Deploy Command** and set **Start Command** to:
        ```bash
        gunicorn artisanos.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120
        ```
@@ -114,6 +114,10 @@ Repeat these 3 steps for **Staging** (branch `stage`) and **Production** (branch
 | `SESSION_COOKIE_SECURE` | Recommended | `True` | Defaults to `True` when `DJANGO_DEBUG=False` |
 | `FEATURE_CAMERA_MEASUREMENTS` | Optional | `False` | Keep `False` until Phase 4 |
 | `PAYSTACK_SECRET_KEY` | Yes (payments) | `sk_test_...` (stage) / `sk_live_...` (prod) | Required for Paystack webhooks |
+| `DJANGO_SUPERUSER_EMAIL` | Optional (Free tier) | `admin@artisanos.ng` | Auto-creates a Platform Admin & Django superuser on deploy (no Shell needed) |
+| `DJANGO_SUPERUSER_PASSWORD` | Optional (Free tier) | *(strong password)* | Used with `DJANGO_SUPERUSER_EMAIL`. Remove or keep after initial bootstrap |
+| `DJANGO_SUPERUSER_FULL_NAME` | Optional | `Platform Admin` | Display name for the bootstrapped admin account |
+| `SEED_DEMO_DATA` | Optional | `True` (stage) / `False` (prod) | Set `True` on staging to auto-seed demo artisans & data on first deploy |
 
 ### Frontend (`apps/frontend`) on Render
 
@@ -146,20 +150,22 @@ Inside **each** environment (`staging` and `production`), add:
 
 ---
 
-## 5. One-Time Post-Deploy Seed (Nigerian Locations)
+## 5. Zero-Shell Bootstrap & Full INEC Dataset Sync (Render Free Friendly)
 
-Migrations, measurement templates (`seed_templates`), and billing plans (`seed_plans`) run automatically on deploy. After your first successful deploy, open the Render Backend **Shell** (or run locally against the External DB URL) once to load Nigerian states/LGAs/wards/polling units:
+Render's **Free tier does not include the Shell feature**, so ArtisanOS is configured to run completely **zero-shell**:
 
-```bash
-# Full INEC dataset (~176k polling units, 8,809 wards, 774 LGAs, 37 states):
-python manage.py sync_inec_polling_units
+1. **Automatic Deploy Bootstrap (`python manage.py bootstrap_deploy`)** runs automatically on every boot/deploy and idempotently handles:
+   - Database migrations (`migrate --noinput`)
+   - System measurement templates (`seed_templates`)
+   - Subscription billing plans (`seed_plans`)
+   - All **37 Nigerian States, all 774 LGAs**, and baseline Electoral Wards & Polling Units (`seed_nigeria_locations` — skipped in milliseconds on subsequent cold starts once loaded)
+   - **Platform Admin & Django Superuser creation** when `DJANGO_SUPERUSER_EMAIL` and `DJANGO_SUPERUSER_PASSWORD` are set in Render Environment Variables
+   - **Optional demo data** when `SEED_DEMO_DATA=True` is set (useful on staging)
 
-# Or lightweight offline baseline:
-python manage.py seed_nigeria_locations
-```
-
-Optional: create a Django superuser for `/admin/`:
-
-```bash
-python manage.py createsuperuser
-```
+2. **One-Click Full INEC Dataset Sync (~176k Polling Units) — No Shell Required**:
+   - Sign in with your bootstrapped Platform Admin account and open **`/platform-admin`**.
+   - In the **Nigeria Locations & INEC Dataset** panel, click **Sync Full INEC Dataset (~176k PUs)** to run the background bulk importer directly from your browser with live progress updates.
+   - *(Optional alternative)*: You can also run any management command from your own machine against the Render PostgreSQL **External Database URL**:
+     ```bash
+     DATABASE_URL="<render-external-database-url>" python manage.py sync_inec_polling_units
+     ```

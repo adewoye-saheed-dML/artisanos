@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Lock,
   MapPin,
+  Menu,
   Navigation,
   PhoneCall,
   Search,
@@ -14,6 +15,7 @@ import {
   Store,
   UserCheck,
   Wrench,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -142,6 +144,7 @@ export default function HomePage() {
   const [category, setCategory] = useState("");
   const [keyword, setKeyword] = useState("");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [location, setLocation] = useState<NigeriaLocationValue>({
     stateId: "",
     lgaId: "",
@@ -185,13 +188,15 @@ export default function HomePage() {
       />
 
       {/* Sticky Navigation */}
-      <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/90 backdrop-blur-lg">
-        <div className="mx-auto flex min-h-[72px] max-w-[1180px] items-center justify-between gap-4 px-5">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand">
+      <header className="sticky top-0 z-40 border-b border-line/80 bg-paper/95 backdrop-blur-lg">
+        <div className="mx-auto flex min-h-[64px] max-w-[1180px] items-center justify-between gap-2 px-4 sm:min-h-[72px] sm:gap-4 sm:px-5">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand sm:h-9 sm:w-9">
               <Wrench className="h-4 w-4" />
             </div>
-            <span className="text-lg font-extrabold tracking-tight text-plum">ArtisanOS</span>
+            <span className="text-base font-extrabold tracking-tight text-plum sm:text-lg">
+              ArtisanOS
+            </span>
           </Link>
 
           <nav
@@ -215,71 +220,142 @@ export default function HomePage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {!isLoading && user ? (
               <Link href={user.memberships.length > 0 ? "/dashboard" : "/marketplace"}>
-                <Button size="sm">
-                  {user.memberships.length > 0 ? "Open workspace" : "Browse marketplace"}
+                <Button size="sm" className="px-3 sm:px-4">
+                  <span className="hidden sm:inline">
+                    {user.memberships.length > 0 ? "Open workspace" : "Browse marketplace"}
+                  </span>
+                  <span className="sm:hidden">
+                    {user.memberships.length > 0 ? "Workspace" : "Explore"}
+                  </span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             ) : (
               <>
-                <Link href="/login">
+                <Link href="/login" className="hidden sm:inline-block">
                   <Button variant="ghost" size="sm">
                     Sign in
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button size="sm">
+                  <Button size="sm" className="px-3 sm:px-4">
                     Get started
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
               </>
             )}
+            <button
+              type="button"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-plum hover:bg-surface-blush md:hidden"
+            >
+              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Navigation Drawer */}
+        {mobileMenuOpen && (
+          <div className="border-t border-line bg-paper px-4 pb-5 pt-3 shadow-card md:hidden">
+            <nav aria-label="Mobile navigation" className="flex flex-col gap-1">
+              <Link
+                href="/marketplace"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-3.5 py-2.5 text-sm font-bold text-brand-700 hover:bg-surface-blush"
+              >
+                Marketplace
+              </Link>
+              <a
+                href="#featured-trades"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+              >
+                Trades &amp; Goods
+              </a>
+              <a
+                href="#how-it-works"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+              >
+                How It Works
+              </a>
+              <a
+                href="#trust"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+              >
+                Trust &amp; Protection
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink hover:bg-surface"
+              >
+                FAQ
+              </a>
+            </nav>
+            {!isLoading && !user && (
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-line-soft pt-3">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" size="sm" className="w-full">
+                    Sign in
+                  </Button>
+                </Link>
+                <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full">
+                    Get started
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="mezer-hero-bg relative overflow-hidden pb-16 pt-10 sm:pb-22 sm:pt-14">
+      <section className="mezer-hero-bg relative overflow-hidden pb-14 pt-8 sm:pb-22 sm:pt-14">
         <div
           aria-hidden="true"
           className="mezer-hero-glow pointer-events-none absolute -right-24 -top-24 h-[520px] w-[520px] rounded-full"
         />
 
-        <div className="relative mx-auto max-w-[1180px] space-y-10 px-5">
-          <div className="grid items-center gap-10 lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="relative mx-auto max-w-[1180px] space-y-8 px-4 sm:space-y-10 sm:px-5">
+          <div className="grid items-center gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10">
             {/* Hero Copy */}
-            <div className="animate-fade-up space-y-5">
+            <div className="animate-fade-up space-y-4 sm:space-y-5">
               <div className="mezer-eyebrow">
-                <Navigation className="h-3.5 w-3.5" />
+                <Navigation className="h-3.5 w-3.5 shrink-0" />
                 Across All 36 States, FCT Abuja &amp; 774 LGAs
               </div>
 
-              <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight text-plum sm:text-5xl lg:text-[3.3rem]">
+              <h1 className="text-3xl font-extrabold leading-[1.1] tracking-tight text-plum sm:text-5xl lg:text-[3.3rem]">
                 Find skilled artisans right in your{" "}
                 <span className="bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent">
                   neighborhood.
                 </span>
               </h1>
 
-              <p className="max-w-xl text-base leading-relaxed text-ink-soft sm:text-lg">
+              <p className="max-w-xl text-sm leading-relaxed text-ink-soft sm:text-lg">
                 Search verified tailors, electricians, plumbers, carpenters, mechanics, and local
                 makers by Ward or Polling Unit. Hire directly for on-site work or purchase
                 handcrafted goods with complete peace of mind.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
-                <a href="#nearby-search">
-                  <Button size="lg">
+              <div className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+                <a href="#nearby-search" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full sm:w-auto">
                     <Search className="h-4 w-4" />
                     Find an Artisan
                   </Button>
                 </a>
-                <Link href="/register">
-                  <Button variant="outline" size="lg">
+                <Link href="/register" className="w-full sm:w-auto">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto">
                     <Store className="h-4 w-4" />
                     Register Your Business
                   </Button>
@@ -517,11 +593,11 @@ export default function HomePage() {
 
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
             {/* For Customers */}
-            <div className="rounded-mezer-lg border border-line bg-white p-7 shadow-card sm:p-8">
+            <div className="rounded-mezer-lg border border-line bg-white p-5 shadow-card sm:p-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3.5 py-1 text-xs font-extrabold text-emerald-800">
                 <UserCheck className="h-4 w-4" /> For Customers
               </div>
-              <h3 className="mt-4 text-2xl font-extrabold text-plum">
+              <h3 className="mt-4 text-xl font-extrabold text-plum sm:text-2xl">
                 Hire locally and release payment upon completion.
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">
@@ -551,14 +627,14 @@ export default function HomePage() {
                   </span>
                 </li>
               </ul>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/marketplace">
-                  <Button>
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
+                <Link href="/marketplace" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto">
                     Browse artisans <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/escrow">
-                  <Button variant="outline">
+                <Link href="/escrow" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto">
                     <Lock className="h-4 w-4" /> Payment protection
                   </Button>
                 </Link>
@@ -566,11 +642,11 @@ export default function HomePage() {
             </div>
 
             {/* For Artisans */}
-            <div className="rounded-mezer-lg border border-line bg-white p-7 shadow-card sm:p-8">
+            <div className="rounded-mezer-lg border border-line bg-white p-5 shadow-card sm:p-8">
               <div className="inline-flex items-center gap-2 rounded-full bg-surface-blush px-3.5 py-1 text-xs font-extrabold text-brand-700">
                 <Store className="h-4 w-4" /> For Artisans &amp; Workshops
               </div>
-              <h3 className="mt-4 text-2xl font-extrabold text-plum">
+              <h3 className="mt-4 text-xl font-extrabold text-plum sm:text-2xl">
                 Grow local demand and run your business in one place.
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">
@@ -600,14 +676,14 @@ export default function HomePage() {
                   </span>
                 </li>
               </ul>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/register">
-                  <Button>
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:gap-3">
+                <Link href="/register" className="w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto">
                     Register your business <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link href="/login">
-                  <Button variant="outline">Sign in</Button>
+                <Link href="/login" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto">Sign in</Button>
                 </Link>
               </div>
             </div>
@@ -667,14 +743,14 @@ export default function HomePage() {
             Serving neighborhoods across Lagos, Abuja, Port Harcourt, Ibadan, Kano, Enugu, and all
             36 States plus the FCT.
           </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/marketplace">
-              <Button size="lg">
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/marketplace" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto">
                 <ShoppingBag className="h-4 w-4" /> Explore Marketplace
               </Button>
             </Link>
-            <Link href="/register">
-              <Button variant="outline" size="lg">
+            <Link href="/register" className="w-full sm:w-auto">
+              <Button variant="outline" size="lg" className="w-full sm:w-auto">
                 Register Your Business
               </Button>
             </Link>

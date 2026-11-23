@@ -215,48 +215,86 @@ export default function CustomersPage() {
                 </p>
               </CardContent>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
-                    <tr>
-                      <th className="px-6 py-3.5">Customer</th>
-                      <th className="px-6 py-3.5">Phone</th>
-                      <th className="hidden px-6 py-3.5 sm:table-cell">Preferred Contact</th>
-                      <th className="hidden px-6 py-3.5 md:table-cell">Created</th>
-                      <th className="px-6 py-3.5 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line-soft">
-                    {data.results.map((c) => (
-                      <tr key={c.id} className="transition-colors hover:bg-surface-blush/60">
-                        <td className="px-6 py-4">
+              <>
+                {/* Mobile Card List */}
+                <div className="divide-y divide-line-soft sm:hidden">
+                  {data.results.map((c) => (
+                    <div key={c.id} className="space-y-2.5 p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
                           <Link
                             href={`/customers/${c.id}`}
-                            className="font-semibold text-plum hover:text-brand-700 hover:underline"
+                            className="block truncate text-sm font-bold text-plum hover:text-brand-700"
                           >
                             {c.full_name}
                           </Link>
-                          {c.email && <div className="text-xs text-ink-faint">{c.email}</div>}
-                        </td>
-                        <td className="px-6 py-4 text-ink-soft">{c.phone}</td>
-                        <td className="hidden px-6 py-4 capitalize text-ink-soft sm:table-cell">
+                          <div className="text-xs text-ink-soft">{c.phone}</div>
+                          {c.email && (
+                            <div className="truncate text-xs text-ink-faint">{c.email}</div>
+                          )}
+                        </div>
+                        <span className="shrink-0 rounded-full bg-surface-blush px-2.5 py-0.5 text-[10px] font-bold capitalize text-brand-700">
                           {c.preferred_contact_method}
-                        </td>
-                        <td className="hidden px-6 py-4 text-xs text-ink-faint md:table-cell">
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        <span className="text-[11px] text-ink-faint">
                           {formatDateTime(c.created_at)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <Link href={`/customers/${c.id}`}>
-                            <Button variant="outline" size="sm">
-                              Open profile
-                            </Button>
-                          </Link>
-                        </td>
+                        </span>
+                        <Link href={`/customers/${c.id}`}>
+                          <Button variant="outline" size="sm">
+                            Open profile
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop Table */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-line bg-surface-blush text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+                      <tr>
+                        <th className="px-6 py-3.5">Customer</th>
+                        <th className="px-6 py-3.5">Phone</th>
+                        <th className="hidden px-6 py-3.5 sm:table-cell">Preferred Contact</th>
+                        <th className="hidden px-6 py-3.5 md:table-cell">Created</th>
+                        <th className="px-6 py-3.5 text-right">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-line-soft">
+                      {data.results.map((c) => (
+                        <tr key={c.id} className="transition-colors hover:bg-surface-blush/60">
+                          <td className="px-6 py-4">
+                            <Link
+                              href={`/customers/${c.id}`}
+                              className="font-semibold text-plum hover:text-brand-700 hover:underline"
+                            >
+                              {c.full_name}
+                            </Link>
+                            {c.email && <div className="text-xs text-ink-faint">{c.email}</div>}
+                          </td>
+                          <td className="px-6 py-4 text-ink-soft">{c.phone}</td>
+                          <td className="hidden px-6 py-4 capitalize text-ink-soft sm:table-cell">
+                            {c.preferred_contact_method}
+                          </td>
+                          <td className="hidden px-6 py-4 text-xs text-ink-faint md:table-cell">
+                            {formatDateTime(c.created_at)}
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <Link href={`/customers/${c.id}`}>
+                              <Button variant="outline" size="sm">
+                                Open profile
+                              </Button>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </Card>
         )}
