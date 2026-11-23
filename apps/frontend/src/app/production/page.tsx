@@ -67,14 +67,14 @@ export default function ProductionBoardPage() {
               Track confirmed garments through cutting, sewing, fitting, and final quality checks.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/appointments">
-              <Button variant="outline" size="sm">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+            <Link href="/appointments" className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 Fittings calendar
               </Button>
             </Link>
-            <Link href="/orders">
-              <Button size="sm">
+            <Link href="/orders" className="w-full sm:w-auto">
+              <Button size="sm" className="w-full sm:w-auto">
                 <ClipboardList className="h-4 w-4" />
                 All orders
               </Button>

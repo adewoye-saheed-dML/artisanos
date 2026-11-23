@@ -248,11 +248,12 @@ export default function OrderDetailPage() {
                           placeholder="e.g. Fabric cut, first fitting scheduled..."
                         />
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                         {order.allowed_next_statuses.map((nextStatus) => (
                           <Button
                             key={nextStatus}
                             size="sm"
+                            className="w-full sm:w-auto"
                             variant={nextStatus === "cancelled" ? "danger" : "primary"}
                             disabled={transitionMutation.isPending}
                             onClick={() => transitionMutation.mutate(nextStatus)}

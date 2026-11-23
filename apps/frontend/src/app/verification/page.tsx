@@ -330,6 +330,7 @@ export default function VerificationPage() {
               {canManage && (
                 <div className="flex justify-end pt-1">
                   <Button
+                    className="w-full sm:w-auto"
                     onClick={() => submitKycMutation.mutate()}
                     disabled={submitKycMutation.isPending}
                   >

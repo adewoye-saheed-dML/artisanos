@@ -447,9 +447,9 @@ export default function CustomerDetailPage() {
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {customer && (
-              <Button variant="outline" size="sm" onClick={openCustomerEdit}>
+              <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={openCustomerEdit}>
                 <Edit3 className="h-4 w-4" />
                 Edit details
               </Button>
@@ -458,6 +458,7 @@ export default function CustomerDetailPage() {
               <Button
                 variant={customer.is_archived ? "secondary" : "outline"}
                 size="sm"
+                className="w-full sm:w-auto"
                 disabled={toggleArchiveMutation.isPending}
                 onClick={() => toggleArchiveMutation.mutate()}
               >
@@ -472,13 +473,19 @@ export default function CustomerDetailPage() {
                 )}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => createRequestMutation.mutate()}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => createRequestMutation.mutate()}
+            >
               <Link2 className="h-4 w-4" />
               Request measurements
             </Button>
             <Button
               variant="outline"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={() => {
                 setShowImportPanel((v) => !v);
                 setImportError("");
@@ -487,7 +494,11 @@ export default function CustomerDetailPage() {
               <Download className="h-4 w-4" />
               Import Fit Passport
             </Button>
-            <Button size="sm" onClick={openNewMeasurementForm}>
+            <Button
+              size="sm"
+              className="col-span-2 w-full sm:col-span-1 sm:w-auto"
+              onClick={openNewMeasurementForm}
+            >
               <Plus className="h-4 w-4" />
               Record measurements
             </Button>

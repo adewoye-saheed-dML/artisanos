@@ -198,12 +198,12 @@ function AppointmentsContent() {
               Schedule client measurement sessions, fittings, and garment collections.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-full border border-line bg-white p-1 shadow-mezer-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex w-full rounded-full border border-line bg-white p-1 shadow-mezer-sm sm:inline-flex sm:w-auto">
               <button
                 type="button"
                 onClick={() => setViewMode("calendar")}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-initial ${
                   viewMode === "calendar"
                     ? "bg-plum text-white"
                     : "text-ink-soft hover:text-plum"
@@ -217,7 +217,7 @@ function AppointmentsContent() {
                   setViewMode("list");
                   setSelectedDayKey(null);
                 }}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:flex-initial ${
                   viewMode === "list"
                     ? "bg-plum text-white"
                     : "text-ink-soft hover:text-plum"
@@ -226,7 +226,7 @@ function AppointmentsContent() {
                 <List className="h-3.5 w-3.5" /> List
               </button>
             </div>
-            <Button onClick={() => setShowCreate((v) => !v)}>
+            <Button className="w-full sm:w-auto" onClick={() => setShowCreate((v) => !v)}>
               {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {showCreate ? "Close form" : "New appointment"}
             </Button>

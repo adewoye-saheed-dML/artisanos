@@ -54,15 +54,15 @@ export default function DashboardPage() {
                 Real-time customer records, measurement profiles, and tailoring orders.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2.5">
-              <Link href="/customers">
-                <Button variant="light" size="sm">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5">
+              <Link href="/customers" className="w-full sm:w-auto">
+                <Button variant="light" size="sm" className="w-full sm:w-auto">
                   <Users className="h-4 w-4" />
                   Add customer
                 </Button>
               </Link>
-              <Link href="/orders">
-                <Button size="sm">
+              <Link href="/orders" className="w-full sm:w-auto">
+                <Button size="sm" className="w-full sm:w-auto">
                   <ClipboardList className="h-4 w-4" />
                   New order
                 </Button>

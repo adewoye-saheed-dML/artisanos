@@ -643,10 +643,11 @@ export default function PlatformAdminPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                       {v.status !== "approved" && (
                         <Button
                           size="sm"
+                          className="w-full sm:w-auto"
                           onClick={() =>
                             kycDecisionMutation.mutate({
                               orgId: v.organization_id,
@@ -662,6 +663,7 @@ export default function PlatformAdminPage() {
                         <Button
                           size="sm"
                           variant="danger"
+                          className="w-full sm:w-auto"
                           onClick={() =>
                             kycDecisionMutation.mutate({
                               orgId: v.organization_id,

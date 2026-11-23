@@ -272,9 +272,9 @@ export default function ProductsPage() {
                   : " · Pin your Ward & Polling Unit in Workspace Settings to appear in nearby searches"}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link href={publicStorePath} target="_blank">
-                <Button variant="light" size="sm">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <Link href={publicStorePath} target="_blank" className="w-full sm:w-auto">
+                <Button variant="light" size="sm" className="w-full sm:w-auto">
                   <ExternalLink className="h-3.5 w-3.5" />
                   View storefront
                 </Button>
@@ -282,7 +282,7 @@ export default function ProductsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                className="w-full border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white sm:w-auto"
                 onClick={() => {
                   if (typeof window !== "undefined") {
                     navigator.clipboard?.writeText(`${window.location.origin}${publicStorePath}`);
@@ -295,6 +295,7 @@ export default function ProductsPage() {
               {canManageStore && (
                 <Button
                   size="sm"
+                  className="col-span-2 w-full sm:col-span-1 sm:w-auto"
                   onClick={() => setShowStorefrontEdit((v) => !v)}
                 >
                   Edit storefront
@@ -536,11 +537,19 @@ export default function ProductsPage() {
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowCreate(false)}>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => setShowCreate(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createProductMutation.isPending}>
+                  <Button
+                    type="submit"
+                    className="w-full sm:w-auto"
+                    disabled={createProductMutation.isPending}
+                  >
                     {createProductMutation.isPending ? "Saving..." : "Save listing"}
                   </Button>
                 </div>

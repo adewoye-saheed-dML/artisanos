@@ -431,6 +431,7 @@ function EscrowContent() {
                           />
                           <Button
                             size="sm"
+                            className="w-full sm:w-auto"
                             disabled={
                               releaseMutation.isPending ||
                               (pinInputByEscrow[esc.id] || "").trim().length < 6
@@ -447,6 +448,7 @@ function EscrowContent() {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="w-full sm:w-auto"
                             onClick={() =>
                               setOpenDisputeId(openDisputeId === esc.id ? null : esc.id)
                             }
@@ -472,10 +474,11 @@ function EscrowContent() {
                                 }))
                               }
                             />
-                            <div className="flex justify-end gap-2">
+                            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                className="w-full sm:w-auto"
                                 onClick={() => setOpenDisputeId(null)}
                               >
                                 Cancel
@@ -483,6 +486,7 @@ function EscrowContent() {
                               <Button
                                 size="sm"
                                 variant="danger"
+                                className="w-full sm:w-auto"
                                 disabled={disputeMutation.isPending}
                                 onClick={() =>
                                   disputeMutation.mutate({

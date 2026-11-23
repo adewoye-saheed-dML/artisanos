@@ -229,14 +229,14 @@ function MarketplaceContent() {
             {user ? (
               <>
                 <Link href="/escrow">
-                  <Button variant="outline" size="sm" className="px-2.5 sm:px-4">
+                  <Button variant="outline" size="sm" className="whitespace-nowrap px-2.5 sm:px-4">
                     <Lock className="h-3.5 w-3.5 text-emerald-700" />
-                    <span className="hidden xs:inline sm:inline">Escrows</span>
+                    <span className="hidden sm:inline">Escrows</span>
                   </Button>
                 </Link>
                 {user.memberships.length > 0 ? (
                   <Link href="/dashboard">
-                    <Button size="sm" className="px-3 sm:px-4">
+                    <Button size="sm" className="whitespace-nowrap px-3 sm:px-4">
                       <span className="hidden sm:inline">Open workspace</span>
                       <span className="sm:hidden">Workspace</span>
                     </Button>
@@ -413,7 +413,7 @@ function MarketplaceContent() {
       <main className="mx-auto max-w-[1180px] space-y-6 px-4 py-8 sm:px-5 sm:py-10">
         {/* Quick Call-for-Work Modal */}
         {calloutTarget && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-plum/55 p-0 backdrop-blur-xs sm:items-center sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-plum/55 p-0 backdrop-blur-sm sm:items-center sm:p-4">
             <Card className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-b-none rounded-t-mezer-lg sm:rounded-mezer-lg">
               <CardHeader className="flex flex-row items-start justify-between gap-3">
                 <div>
@@ -539,11 +539,19 @@ function MarketplaceContent() {
                       />
                     </div>
 
-                    <div className="flex justify-end gap-2 pt-1">
-                      <Button variant="outline" onClick={() => setCalloutTarget(null)}>
+                    <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        onClick={() => setCalloutTarget(null)}
+                      >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={calloutMutation.isPending}>
+                      <Button
+                        type="submit"
+                        className="w-full sm:w-auto"
+                        disabled={calloutMutation.isPending}
+                      >
                         {calloutMutation.isPending ? "Sending..." : "Send work call-out"}
                       </Button>
                     </div>
@@ -918,15 +926,15 @@ function MarketplaceContent() {
                         From {formatCurrency(srv.price, srv.currency)}
                       </div>
                     </CardContent>
-                    <div className="flex gap-2 border-t border-line-soft px-5 py-3.5">
+                    <div className="flex flex-col gap-2 border-t border-line-soft px-4 py-3.5 sm:flex-row sm:px-5">
                       {buildTelHref(srv.organization_phone) && (
-                        <a href={buildTelHref(srv.organization_phone)!}>
-                          <Button size="sm" variant="outline">
+                        <a href={buildTelHref(srv.organization_phone)!} className="w-full sm:w-auto">
+                          <Button size="sm" variant="outline" className="w-full sm:w-auto">
                             <Phone className="h-3.5 w-3.5" /> Call
                           </Button>
                         </a>
                       )}
-                      <Link href={`/store/${srv.storefront_slug}`} className="flex-1">
+                      <Link href={`/store/${srv.storefront_slug}`} className="w-full sm:flex-1">
                         <Button size="sm" className="w-full">
                           Book service <ArrowRight className="h-3.5 w-3.5" />
                         </Button>

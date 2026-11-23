@@ -409,7 +409,7 @@ export function NigeriaLocationPicker({
               size="md"
               disabled={detecting}
               onClick={() => handleAutoDetect(false)}
-              className="shrink-0 bg-white"
+              className="w-full shrink-0 bg-white sm:w-auto"
             >
               {detecting ? (
                 <Loader2 className="h-4 w-4 animate-spin text-brand-700" />
@@ -603,13 +603,19 @@ export function NigeriaLocationPicker({
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button size="sm" variant="ghost" onClick={() => setShowAddForm(false)}>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowAddForm(false)}
+                >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
                   type="button"
+                  className="w-full sm:w-auto"
                   disabled={ensureMutation.isPending || customWardName.trim().length < 2}
                   onClick={() => ensureMutation.mutate()}
                 >

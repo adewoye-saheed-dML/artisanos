@@ -362,7 +362,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="h-full w-72 max-w-[85vw] shadow-2xl">{sidebarContent}</div>
           <div
-            className="flex-1 bg-plum/60 backdrop-blur-xs"
+            className="flex-1 bg-plum/60 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
             aria-hidden="true"
           />

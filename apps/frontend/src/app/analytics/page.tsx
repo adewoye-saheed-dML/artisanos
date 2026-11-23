@@ -76,12 +76,12 @@ export default function AnalyticsPage() {
               measurements.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Select
               aria-label="Date range months"
               value={months}
               onChange={(e) => setMonths(e.target.value)}
-              className="mt-0 w-36 rounded-full bg-white py-2 text-xs shadow-mezer-sm"
+              className="col-span-2 mt-0 w-full rounded-full bg-white py-2 text-xs shadow-mezer-sm sm:col-span-1 sm:w-36"
             >
               <option value="3">Last 3 months</option>
               <option value="6">Last 6 months</option>
@@ -92,6 +92,7 @@ export default function AnalyticsPage() {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="w-full sm:w-auto"
                   disabled={exporting !== null}
                   onClick={() => void downloadCsv("customers")}
                 >
@@ -100,6 +101,7 @@ export default function AnalyticsPage() {
                 </Button>
                 <Button
                   size="sm"
+                  className="w-full sm:w-auto"
                   disabled={exporting !== null}
                   onClick={() => void downloadCsv("orders")}
                 >

@@ -176,7 +176,10 @@ export default function TemplatesPage() {
             </p>
           </div>
           {canManage && (
-            <Button onClick={() => (showCreate ? setShowCreate(false) : openNewTemplateForm())}>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => (showCreate ? setShowCreate(false) : openNewTemplateForm())}
+            >
               {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
               {showCreate ? "Close builder" : "New custom template"}
             </Button>
@@ -385,11 +388,19 @@ export default function TemplatesPage() {
                 ))}
               </div>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowCreate(false)}>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setShowCreate(false)}
+                >
                   Cancel
                 </Button>
-                <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                >
                   {saveMutation.isPending
                     ? "Publishing..."
                     : versioningTemplate

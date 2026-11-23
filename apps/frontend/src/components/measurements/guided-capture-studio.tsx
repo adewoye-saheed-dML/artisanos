@@ -236,20 +236,20 @@ export function GuidedCaptureStudio({
           </Select>
         </div>
 
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
           {!cameraActive ? (
-            <Button size="sm" variant="outline" onClick={startCamera}>
+            <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={startCamera}>
               <Camera className="h-4 w-4" />
               Open guided camera
             </Button>
           ) : (
-            <Button size="sm" variant="ghost" onClick={stopCamera}>
+            <Button size="sm" variant="ghost" className="w-full sm:w-auto" onClick={stopCamera}>
               <VideoOff className="h-4 w-4" />
               Close camera
             </Button>
           )}
-          <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-line bg-white px-4 text-xs font-semibold text-ink hover:border-brand-300 hover:bg-surface-blush">
-            <Upload className="h-3.5 w-3.5" />
+          <label className="inline-flex min-h-9 w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-xs font-semibold text-ink hover:border-brand-300 hover:bg-surface-blush sm:w-auto">
+            <Upload className="h-3.5 w-3.5 shrink-0" />
             Choose image file
             <input
               type="file"
@@ -390,7 +390,12 @@ export function GuidedCaptureStudio({
       )}
 
       <div className="flex justify-end">
-        <Button size="sm" onClick={handleSubmit} disabled={isUploading || !capturedFile}>
+        <Button
+          size="sm"
+          className="w-full sm:w-auto"
+          onClick={handleSubmit}
+          disabled={isUploading || !capturedFile}
+        >
           {isUploading ? "Uploading securely..." : "Save consented reference photo"}
         </Button>
       </div>

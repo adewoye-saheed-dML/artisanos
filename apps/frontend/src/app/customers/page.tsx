@@ -90,7 +90,7 @@ export default function CustomersPage() {
               Manage customer profiles, reusable fit records, and order history.
             </p>
           </div>
-          <Button onClick={() => setShowCreate((v) => !v)}>
+          <Button className="w-full sm:w-auto" onClick={() => setShowCreate((v) => !v)}>
             {showCreate ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showCreate ? "Close form" : "Add customer"}
           </Button>
@@ -157,11 +157,19 @@ export default function CustomersPage() {
                   <Textarea id="cust-notes" rows={2} placeholder="Fit preferences, posture notes..." {...register("notes")} />
                 </div>
 
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowCreate(false)}>
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => setShowCreate(false)}
+                  >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
+                  <Button
+                    type="submit"
+                    className="w-full sm:w-auto"
+                    disabled={createMutation.isPending}
+                  >
                     {createMutation.isPending ? "Saving..." : "Save customer"}
                   </Button>
                 </div>

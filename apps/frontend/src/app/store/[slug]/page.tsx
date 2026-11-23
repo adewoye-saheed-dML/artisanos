@@ -506,11 +506,19 @@ export default function PublicStorefrontPage() {
                           />
                         </div>
                       </div>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setShowEscrowModal(false)}>
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                          onClick={() => setShowEscrowModal(false)}
+                        >
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={createEscrowMutation.isPending}>
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto"
+                          disabled={createEscrowMutation.isPending}
+                        >
                           <Lock className="h-3.5 w-3.5" />
                           {createEscrowMutation.isPending
                             ? "Opening escrow..."
@@ -697,11 +705,19 @@ export default function PublicStorefrontPage() {
                         />
                       </div>
 
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setShowInquiry(false)}>
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <Button
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                          onClick={() => setShowInquiry(false)}
+                        >
                           Cancel
                         </Button>
-                        <Button type="submit" disabled={inquiryMutation.isPending}>
+                        <Button
+                          type="submit"
+                          className="w-full sm:w-auto"
+                          disabled={inquiryMutation.isPending}
+                        >
                           {inquiryMutation.isPending ? "Sending..." : "Submit request"}
                         </Button>
                       </div>
@@ -785,11 +801,11 @@ export default function PublicStorefrontPage() {
                         {formatCurrency(prod.price, prod.currency)}
                       </div>
                     </CardContent>
-                    <div className="flex gap-2 border-t border-line-soft px-6 py-4">
+                    <div className="flex flex-col gap-2 border-t border-line-soft px-4 py-3.5 sm:flex-row sm:px-6 sm:py-4">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1"
+                        className="w-full sm:flex-1"
                         onClick={() => openCalloutModal(prod)}
                       >
                         {prod.product_type === "service" ? "Inquire" : "Order"}
@@ -797,7 +813,7 @@ export default function PublicStorefrontPage() {
                       {sf.is_verified && (
                         <Button
                           size="sm"
-                          className="flex-1"
+                          className="w-full sm:flex-1"
                           onClick={() => {
                             setEscrowJobTitle(prod.name);
                             setEscrowAmount(prod.price);

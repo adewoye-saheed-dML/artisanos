@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_INTERNAL_URL = process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:8000";
+const BACKEND_INTERNAL_URL = (process.env.BACKEND_INTERNAL_URL || "http://127.0.0.1:8000")
+  .trim()
+  .replace(/\/+$/, "")
+  .replace(/\/api\/v1$/i, "");
 
 async function proxyRequest(
   request: NextRequest,
   context: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await context.params;
-  const joined = path.join("/");
+  const joined = path.map((seg) => seg.replace(/^\/+|\/+$/g, "")).filter(Boolean).join("/");
   const search = request.nextUrl.search || "";
   const targetUrl = `${BACKEND_INTERNAL_URL}/api/v1/${joined}/${search}`;
 
@@ -17,6 +20,8 @@ async function proxyRequest(
     "authorization",
     "content-type",
     "cookie",
+    "origin",
+    "referer",
     "x-csrftoken",
     "x-organization-id",
   ];
