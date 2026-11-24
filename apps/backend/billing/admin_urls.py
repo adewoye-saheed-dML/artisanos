@@ -12,12 +12,14 @@ from .admin_views import (
     PlatformAdminOverviewView,
     PlatformAdminReactivateOrgView,
     PlatformAdminRejectKYCView,
+    PlatformAdminRevenueView,
     PlatformAdminSuspendOrgView,
     PlatformAdminVerificationListView,
 )
 
 urlpatterns = [
     path("overview/", PlatformAdminOverviewView.as_view(), name="platform-admin-overview"),
+    path("revenue/", PlatformAdminRevenueView.as_view(), name="platform-admin-revenue"),
     path("organizations/", PlatformAdminOrganizationListView.as_view(), name="platform-admin-orgs"),
     path(
         "organizations/<uuid:org_id>/suspend/",

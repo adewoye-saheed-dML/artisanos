@@ -615,6 +615,11 @@ function MarketplaceContent() {
                           <span className="rounded-full bg-surface-blush px-2.5 py-0.5 text-[11px] font-bold text-brand-700">
                             {art.category_label}
                           </span>
+                          {art.boost_badge && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-extrabold text-amber-800">
+                              ★ {art.boost_badge}
+                            </span>
+                          )}
                           {art.proximity_label && (
                             <span
                               className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold ${getProximityBadgeClasses(
@@ -833,6 +838,11 @@ function MarketplaceContent() {
                         <span className="rounded-full bg-surface-blush px-2.5 py-0.5 text-[11px] font-bold text-brand-700">
                           {formatStatusLabel(p.product_type)}
                         </span>
+                        {p.boost_badge && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-extrabold text-amber-800">
+                            ★ {p.boost_badge}
+                          </span>
+                        )}
                         {p.proximity_label ? (
                           <span
                             className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${getProximityBadgeClasses(

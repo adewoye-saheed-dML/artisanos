@@ -8,6 +8,8 @@ from django.utils import timezone
 from rest_framework import exceptions
 
 from billing.models import AuditLog
+from billing.paystack import initialize_paystack_transaction
+from billing.services import get_or_create_subscription
 from notifications.models import Notification
 from notifications.services import create_notification
 from orders.models import Order
@@ -15,7 +17,9 @@ from organizations.models import Membership, Organization
 
 from .models import EscrowEvent, EscrowTransaction
 
-ESCROW_FEE_RATE = Decimal("0.03")  # Transparent 3% escrow protection fee
+ESCROW_FEE_RATE = Decimal("0.03")  # Default Starter artisan fee (3.0%); discounted on paid plans
+CUSTOMER_PROTECTION_FEE_RATE = Decimal("0.02")  # Transparent 2% buyer protection fee
+CUSTOMER_PROTECTION_FEE_CAP = Decimal("5000.00")  # Capped at ₦5,000 so large jobs stay affordable
 MAX_MATERIALS_ADVANCE_PCT = 30  # At least 70%–100% stays strictly protected in escrow until completion
 
 
@@ -27,7 +31,22 @@ def generate_completion_pin() -> str:
     return f"{secrets.randbelow(900000) + 100000}"
 
 
-def compute_escrow_breakdown(total_amount: Decimal, materials_advance_pct: int = 0) -> dict:
+def get_organization_escrow_fee_rate_pct(organization: Organization | None) -> Decimal:
+    """Return tier-discounted artisan escrow fee percentage from the organization's active plan."""
+    if organization is None:
+        return Decimal("3.00")
+    sub = get_or_create_subscription(organization)
+    rate = getattr(sub.plan, "escrow_fee_rate_pct", None)
+    if rate is None or rate < Decimal("0.00"):
+        return Decimal("3.00")
+    return Decimal(str(rate)).quantize(Decimal("0.01"))
+
+
+def compute_escrow_breakdown(
+    total_amount: Decimal,
+    materials_advance_pct: int = 0,
+    artisan_fee_rate_pct: Decimal | None = None,
+) -> dict:
     if total_amount <= Decimal("0.00"):
         raise exceptions.ValidationError({"total_amount": "Escrow amount must be greater than zero."})
     if materials_advance_pct < 0 or materials_advance_pct > MAX_MATERIALS_ADVANCE_PCT:
@@ -39,13 +58,28 @@ def compute_escrow_breakdown(total_amount: Decimal, materials_advance_pct: int =
                 )
             }
         )
+    rate_pct = (
+        Decimal(str(artisan_fee_rate_pct)).quantize(Decimal("0.01"))
+        if artisan_fee_rate_pct is not None
+        else Decimal("3.00")
+    )
     advance = (total_amount * Decimal(materials_advance_pct) / Decimal("100")).quantize(Decimal("0.01"))
     held = (total_amount - advance).quantize(Decimal("0.01"))
-    platform_fee = (total_amount * ESCROW_FEE_RATE).quantize(Decimal("0.01"))
-    artisan_payout = (total_amount - platform_fee).quantize(Decimal("0.01"))
+    artisan_fee = (total_amount * rate_pct / Decimal("100")).quantize(Decimal("0.01"))
+    buyer_protection = min(
+        (total_amount * CUSTOMER_PROTECTION_FEE_RATE).quantize(Decimal("0.01")),
+        CUSTOMER_PROTECTION_FEE_CAP,
+    )
+    platform_fee = (artisan_fee + buyer_protection).quantize(Decimal("0.01"))
+    total_payable = (total_amount + buyer_protection).quantize(Decimal("0.01"))
+    artisan_payout = (total_amount - artisan_fee).quantize(Decimal("0.01"))
     return {
         "materials_advance_amount": advance,
         "held_in_escrow_amount": held,
+        "artisan_fee_rate_pct": rate_pct,
+        "artisan_fee_amount": artisan_fee,
+        "customer_protection_fee_amount": buyer_protection,
+        "total_payable_amount": total_payable,
         "platform_fee_amount": platform_fee,
         "artisan_payout_amount": artisan_payout,
     }
@@ -85,8 +119,28 @@ def create_escrow_contract(
     ).exists():
         raise exceptions.PermissionDenied("You cannot open a customer escrow contract with your own workspace.")
 
-    breakdown = compute_escrow_breakdown(total_amount, materials_advance_pct)
+    rate_pct = get_organization_escrow_fee_rate_pct(organization)
+    breakdown = compute_escrow_breakdown(
+        total_amount,
+        materials_advance_pct,
+        artisan_fee_rate_pct=rate_pct,
+    )
     reference = f"ESC-{timezone.now().strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
+    resolved_email = (customer_email or customer_user.email).strip()
+
+    site_url = getattr(settings, "FRONTEND_SITE_URL", "http://localhost:3000").rstrip("/")
+    paystack_init = initialize_paystack_transaction(
+        email=resolved_email,
+        amount=breakdown["total_payable_amount"],
+        reference=reference,
+        currency=organization.currency,
+        callback_url=f"{site_url}/escrow",
+        metadata={
+            "purpose": "escrow",
+            "organization_id": str(organization.id),
+            "job_title": job_title.strip()[:120],
+        },
+    )
 
     escrow = EscrowTransaction.objects.create(
         reference=reference,
@@ -96,18 +150,23 @@ def create_escrow_contract(
         inquiry=inquiry,
         customer_name=(customer_name or customer_user.full_name).strip()[:150],
         customer_phone=(customer_phone or customer_user.phone or "N/A").strip()[:32],
-        customer_email=(customer_email or customer_user.email).strip(),
+        customer_email=resolved_email,
         job_title=job_title.strip()[:180],
         job_description=job_description.strip(),
         total_amount=total_amount,
         materials_advance_pct=materials_advance_pct,
         materials_advance_amount=breakdown["materials_advance_amount"],
         held_in_escrow_amount=breakdown["held_in_escrow_amount"],
+        artisan_fee_rate_pct=breakdown["artisan_fee_rate_pct"],
+        artisan_fee_amount=breakdown["artisan_fee_amount"],
+        customer_protection_fee_amount=breakdown["customer_protection_fee_amount"],
+        total_payable_amount=breakdown["total_payable_amount"],
         platform_fee_amount=breakdown["platform_fee_amount"],
         artisan_payout_amount=breakdown["artisan_payout_amount"],
         currency=organization.currency,
         status=EscrowTransaction.Status.AWAITING_FUNDING,
         payment_provider="paystack" if getattr(settings, "PAYSTACK_SECRET_KEY", "") else "escrow_sandbox",
+        authorization_url=(paystack_init.get("authorization_url", "") if paystack_init else ""),
     )
 
     EscrowEvent.objects.create(
@@ -116,7 +175,11 @@ def create_escrow_contract(
         event_type="created",
         from_status="",
         to_status=EscrowTransaction.Status.AWAITING_FUNDING,
-        notes=f"Escrow contract opened for {escrow.currency} {escrow.total_amount} (held in escrow: {escrow.held_in_escrow_amount}).",
+        notes=(
+            f"Escrow contract opened for {escrow.currency} {escrow.total_amount} "
+            f"(+ {escrow.currency} {escrow.customer_protection_fee_amount} buyer protection; "
+            f"total payable {escrow.currency} {escrow.total_payable_amount})."
+        ),
     )
     return escrow
 

@@ -297,10 +297,11 @@ def test_customer_escrow_full_lifecycle_pin_protection_dispute_and_paystack_webh
     # Direct sandbox fund blocked when live PAYSTACK_SECRET_KEY is configured
     assert cust_client.post(reverse("escrow-fund", args=[esc2_id]), {}, format="json").status_code == 400
 
-    # Valid Paystack HMAC-SHA512 webhook funds the escrow (30,000 NGN -> 3,000,000 kobo)
+    # Valid Paystack HMAC-SHA512 webhook funds the escrow (30,000 + 600 buyer protection NGN -> 3,060,000 kobo)
+    assert esc2_res.data["total_payable_amount"] == "30600.00"
     hook_payload = {
         "event": "charge.success",
-        "data": {"reference": esc2_ref, "amount": 3000000, "currency": "NGN"},
+        "data": {"reference": esc2_ref, "amount": 3060000, "currency": "NGN"},
     }
     raw_body = json.dumps(hook_payload).encode("utf-8")
     sig = hmac.new(settings.PAYSTACK_SECRET_KEY.encode("utf-8"), raw_body, hashlib.sha512).hexdigest()

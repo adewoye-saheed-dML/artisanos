@@ -113,7 +113,9 @@ Repeat these 3 steps for **Staging** (branch `stage`) and **Production** (branch
 | `CSRF_COOKIE_SECURE` | Recommended | `True` | Defaults to `True` when `DJANGO_DEBUG=False` |
 | `SESSION_COOKIE_SECURE` | Recommended | `True` | Defaults to `True` when `DJANGO_DEBUG=False` |
 | `FEATURE_CAMERA_MEASUREMENTS` | Optional | `False` | Keep `False` until Phase 4 |
-| `PAYSTACK_SECRET_KEY` | Yes (payments) | `sk_test_...` (stage) / `sk_live_...` (prod) | Required for Paystack webhooks |
+| `PAYSTACK_SECRET_KEY` | Yes (payments) | `sk_test_...` (stage) / `sk_live_...` (prod) | Required for Paystack checkout, verification & webhooks |
+| `PAYSTACK_PUBLIC_KEY` | Optional (payments) | `pk_test_...` (stage) / `pk_live_...` (prod) | Paystack public key |
+| `FRONTEND_SITE_URL` | Recommended (payments) | `https://artisanos-web-stage.onrender.com` | Base URL for Paystack checkout return redirects (`/billing`, `/escrow`); falls back to `CORS_ALLOWED_ORIGINS` |
 | `DJANGO_SUPERUSER_EMAIL` | Optional (Free tier) | `admin@artisanos.ng` | Auto-creates a Platform Admin & Django superuser on deploy (no Shell needed) |
 | `DJANGO_SUPERUSER_PASSWORD` | Optional (Free tier) | *(strong password)* | Used with `DJANGO_SUPERUSER_EMAIL`. Remove or keep after initial bootstrap |
 | `DJANGO_SUPERUSER_FULL_NAME` | Optional | `Platform Admin` | Display name for the bootstrapped admin account |

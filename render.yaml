@@ -59,6 +59,10 @@ services:
         value: "False"
       - key: PAYSTACK_SECRET_KEY
         sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: FRONTEND_SITE_URL
+        sync: false
       - key: GOOGLE_MAPS_API_KEY
         sync: false
       - key: SYNC_FULL_INEC_ON_BOOT
@@ -133,6 +137,10 @@ services:
       - key: FEATURE_CAMERA_MEASUREMENTS
         value: "False"
       - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: FRONTEND_SITE_URL
         sync: false
       - key: GOOGLE_MAPS_API_KEY
         sync: false

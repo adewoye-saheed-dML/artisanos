@@ -32,6 +32,7 @@ import type {
   PlatformAdminLocationSyncStatus,
   PlatformAdminOrgSummary,
   PlatformAdminOverview,
+  PlatformAdminRevenueSummary,
 } from "@/types/api";
 
 export default function PlatformAdminPage() {
@@ -48,6 +49,13 @@ export default function PlatformAdminPage() {
     queryKey: ["platform-admin-overview"],
     queryFn: () =>
       apiRequest<PlatformAdminOverview>("/platform-admin/overview/", { skipOrgHeader: true }),
+    enabled: isAdmin,
+  });
+
+  const { data: revenue } = useQuery({
+    queryKey: ["platform-admin-revenue"],
+    queryFn: () =>
+      apiRequest<PlatformAdminRevenueSummary>("/platform-admin/revenue/", { skipOrgHeader: true }),
     enabled: isAdmin,
   });
 
@@ -302,6 +310,72 @@ export default function PlatformAdminPage() {
                 </CardContent>
               </Card>
             </div>
+          )}
+
+          {/* Revenue Dashboard */}
+          {revenue && (
+            <Card className="overflow-hidden border-brand-200/80">
+              <CardHeader>
+                <h2 className="text-base font-bold text-plum">Platform Revenue</h2>
+                <p className="text-xs text-ink-faint">
+                  Subscriptions, Spotlight Boosts and payment-protection fees (all in {revenue.currency}).
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {[
+                    ["Total revenue", revenue.total_platform_revenue, `Last 30 days: ${formatCurrency(revenue.revenue_30d, revenue.currency)}`],
+                    ["Monthly recurring (MRR)", revenue.estimated_mrr, `${revenue.active_paid_subscriptions} paid subscriptions`],
+                    ["Spotlight boosts", revenue.boost_revenue_total, `${revenue.active_boosts_count} live now`],
+                    ["Protection fees earned", revenue.escrow_fee_revenue_total, `Held now: ${formatCurrency(revenue.escrow_held_balance, revenue.currency)}`],
+                  ].map(([label, value, sub]) => (
+                    <div key={label} className="rounded-mezer-sm border border-line-soft bg-surface-blush p-4">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</div>
+                      <div className="mt-1 text-xl font-extrabold text-plum">
+                        {formatCurrency(value, revenue.currency)}
+                      </div>
+                      <div className="text-[11px] text-ink-soft">{sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div>
+                    <div className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-faint">By plan</div>
+                    <div className="divide-y divide-line-soft rounded-mezer-sm border border-line-soft">
+                      {revenue.plan_breakdown.map((p) => (
+                        <div key={p.plan_code} className="flex items-center justify-between px-3.5 py-2 text-xs">
+                          <span className="font-semibold text-plum">{p.plan_name}</span>
+                          <span className="text-ink-soft">
+                            {p.active_count} active · MRR {formatCurrency(p.mrr, revenue.currency)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 text-xs font-bold uppercase tracking-wider text-ink-faint">Recent payments</div>
+                    <div className="divide-y divide-line-soft rounded-mezer-sm border border-line-soft">
+                      {revenue.recent_transactions.length === 0 ? (
+                        <p className="px-3.5 py-3 text-xs text-ink-faint">No paid transactions yet.</p>
+                      ) : (
+                        revenue.recent_transactions.slice(0, 6).map((t) => (
+                          <div key={t.id} className="flex items-center justify-between gap-2 px-3.5 py-2 text-xs">
+                            <span className="min-w-0 truncate">
+                              <span className="font-semibold text-plum">{t.organization_name}</span>{" "}
+                              <span className="text-ink-soft">· {t.label}</span>
+                            </span>
+                            <span className="shrink-0 font-bold text-emerald-700">
+                              {formatCurrency(t.amount, t.currency)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Zero-Shell Nigeria Locations & INEC Dataset Control Panel */}

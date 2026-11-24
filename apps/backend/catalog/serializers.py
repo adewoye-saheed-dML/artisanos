@@ -424,6 +424,8 @@ class MarketplaceStorefrontCardSerializer(serializers.Serializer):
     cac_verified = serializers.BooleanField()
     published_product_count = serializers.IntegerField()
     published_service_count = serializers.IntegerField()
+    is_featured = serializers.BooleanField(default=False)
+    boost_badge = serializers.CharField(allow_blank=True, default="")
     proximity_tier = serializers.CharField(allow_null=True)
     proximity_label = serializers.CharField(allow_null=True)
     distance_km = serializers.FloatField(allow_null=True)
@@ -445,6 +447,8 @@ class MarketplaceProductCardSerializer(ProductSerializer):
     polling_unit_name = serializers.CharField(
         source="organization.polling_unit.name", read_only=True, default=None
     )
+    is_featured = serializers.SerializerMethodField()
+    boost_badge = serializers.SerializerMethodField()
     proximity_tier = serializers.SerializerMethodField()
     proximity_label = serializers.SerializerMethodField()
     distance_km = serializers.SerializerMethodField()
@@ -462,10 +466,20 @@ class MarketplaceProductCardSerializer(ProductSerializer):
             "lga_name",
             "ward_name",
             "polling_unit_name",
+            "is_featured",
+            "boost_badge",
             "proximity_tier",
             "proximity_label",
             "distance_km",
         ]
+
+    @extend_schema_field(serializers.BooleanField())
+    def get_is_featured(self, obj) -> bool:
+        return bool(getattr(obj, "_is_featured", False))
+
+    @extend_schema_field(serializers.CharField())
+    def get_boost_badge(self, obj) -> str:
+        return str(getattr(obj, "_boost_badge", "") or "")
 
     @extend_schema_field(serializers.CharField())
     def get_whatsapp_number(self, obj) -> str:

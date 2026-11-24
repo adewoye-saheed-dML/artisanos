@@ -236,7 +236,11 @@ SPECTACULAR_SETTINGS = {
         "StorefrontInquiryTypeEnum": "catalog.models.StorefrontInquiry.InquiryType",
         "StorefrontInquiryUrgencyEnum": "catalog.models.StorefrontInquiry.Urgency",
         "SubscriptionStatusEnum": "billing.models.Subscription.Status",
+        "BillingCycleEnum": "billing.models.Subscription.BillingCycle",
         "PaymentTransactionStatusEnum": "billing.models.PaymentTransaction.Status",
+        "PaymentPurposeEnum": "billing.models.PaymentTransaction.Purpose",
+        "MarketplaceBoostTypeEnum": "billing.models.MarketplaceBoost.BoostType",
+        "MarketplaceBoostStatusEnum": "billing.models.MarketplaceBoost.Status",
         "EscrowStatusEnum": "escrow.models.EscrowTransaction.Status",
     },
 }
@@ -244,8 +248,25 @@ SPECTACULAR_SETTINGS = {
 # Future AI / Camera measurement feature flag (Phase 4)
 FEATURE_CAMERA_MEASUREMENTS = env_bool("FEATURE_CAMERA_MEASUREMENTS", False)
 
-# Paystack webhook verification secret (leave blank until live keys are configured)
-PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+# Paystack payment & webhook verification configuration
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "").strip()
+PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "").strip()
+PAYSTACK_API_BASE_URL = os.getenv("PAYSTACK_API_BASE_URL", "https://api.paystack.co").rstrip("/")
+PAYSTACK_LIVE_API_ENABLED = env_bool("PAYSTACK_LIVE_API_ENABLED", True)
+_default_frontend_site = (
+    os.getenv("FRONTEND_SITE_URL", "").strip()
+    or os.getenv("NEXT_PUBLIC_SITE_URL", "").strip()
+    or next(
+        (
+            origin
+            for origin in CORS_ALLOWED_ORIGINS
+            if not origin.startswith(("http://localhost", "http://127.0.0.1"))
+        ),
+        "",
+    )
+    or "http://localhost:3000"
+)
+FRONTEND_SITE_URL = _default_frontend_site.rstrip("/")
 
 # Standardized Nigerian Location, Electoral Ward & Polling Unit Detection
 # Primary Ward Boundary Engine: Official GRID3 Nigeria Operational Wards v4.0 (Free, no API key, true Point-in-Polygon)

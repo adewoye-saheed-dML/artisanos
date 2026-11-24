@@ -730,19 +730,105 @@ export interface Plan {
   name: string;
   description: string;
   monthly_price: string;
+  annual_price: string;
   currency: string;
   max_members: number;
   max_customers: number;
   max_monthly_measurement_requests: number;
   max_products: number;
+  max_service_wards: number;
+  escrow_fee_rate_pct: string;
+  monthly_free_boosts: number;
+  is_popular: boolean;
   is_active: boolean;
   display_order: number;
+}
+
+export type BillingCycle = "monthly" | "annual";
+export type BoostType = "area_7d" | "lga_30d" | "product_7d";
+
+export interface BoostPackage {
+  code: BoostType;
+  name: string;
+  description: string;
+  amount: string;
+  currency: string;
+  duration_days: number;
+  scope: "storefront" | "product";
+  badge_label: string;
+  eligible_for_plan_credit: boolean;
+}
+
+export interface MarketplaceBoost {
+  id: string;
+  boost_type: BoostType;
+  boost_type_label: string;
+  product: string | null;
+  product_name: string | null;
+  status: "pending_payment" | "active" | "expired" | "cancelled";
+  amount: string;
+  currency: string;
+  duration_days: number;
+  starts_at: string | null;
+  ends_at: string | null;
+  used_plan_credit: boolean;
+  payment_reference: string | null;
+  authorization_url: string;
+  created_at: string;
+}
+
+export interface BoostPackagesOverview {
+  packages: BoostPackage[];
+  monthly_credits_used: number;
+  monthly_credits_limit: number;
+  active_boosts: MarketplaceBoost[];
+}
+
+export interface BoostCheckoutResponse {
+  boost: MarketplaceBoost;
+  transaction: PaymentTransaction | null;
+  detail: string;
+}
+
+export interface PlatformAdminRevenueSummary {
+  currency: string;
+  total_platform_revenue: string;
+  revenue_30d: string;
+  estimated_mrr: string;
+  subscription_revenue_total: string;
+  subscription_revenue_30d: string;
+  active_paid_subscriptions: number;
+  boost_revenue_total: string;
+  boost_revenue_30d: string;
+  active_boosts_count: number;
+  escrow_gmv_total: string;
+  escrow_held_balance: string;
+  escrow_fee_revenue_total: string;
+  escrow_fee_revenue_30d: string;
+  plan_breakdown: Array<{
+    plan_code: string;
+    plan_name: string;
+    monthly_price: string;
+    active_count: number;
+    mrr: string;
+  }>;
+  recent_transactions: Array<{
+    id: string;
+    reference: string;
+    purpose: string;
+    organization_name: string;
+    label: string;
+    amount: string;
+    currency: string;
+    verified_at: string;
+  }>;
 }
 
 export interface SubscriptionInfo {
   id: string;
   plan: Plan;
   status: "trialing" | "active" | "past_due" | "cancelled";
+  billing_cycle: BillingCycle;
   provider: "manual" | "paystack";
   provider_reference: string;
   current_period_start: string;
@@ -759,12 +845,16 @@ export interface UsageCounter {
 export interface PaymentTransaction {
   id: string;
   reference: string;
+  purpose: "subscription" | "boost";
+  billing_cycle: BillingCycle;
   plan: string | null;
   plan_name: string | null;
   provider: string;
   amount: string;
   currency: string;
   status: "pending" | "succeeded" | "failed" | "refunded";
+  authorization_url: string;
+  access_code: string;
   verified_at: string | null;
   created_at: string;
 }
@@ -776,8 +866,11 @@ export interface SubscriptionOverview {
     customers: UsageCounter;
     monthly_measurement_requests: UsageCounter;
     products: UsageCounter;
+    service_wards: UsageCounter;
+    monthly_boost_credits: UsageCounter;
   };
   transactions: PaymentTransaction[];
+  active_boosts: MarketplaceBoost[];
   paystack_configured: boolean;
 }
 
@@ -879,6 +972,8 @@ export interface MarketplaceStorefrontCard {
   cac_verified: boolean;
   published_product_count: number;
   published_service_count: number;
+  is_featured: boolean;
+  boost_badge: string;
   proximity_tier: ProximityTier | null;
   proximity_label: string | null;
   distance_km: number | null;
@@ -896,6 +991,8 @@ export interface MarketplaceProductCard extends Product {
   lga_name: string | null;
   ward_name: string | null;
   polling_unit_name: string | null;
+  is_featured: boolean;
+  boost_badge: string;
   proximity_tier: ProximityTier | null;
   proximity_label: string | null;
   distance_km: number | null;
@@ -1028,11 +1125,16 @@ export interface EscrowTransaction {
   materials_advance_pct: number;
   materials_advance_amount: string;
   held_in_escrow_amount: string;
+  artisan_fee_rate_pct: string;
+  artisan_fee_amount: string;
+  customer_protection_fee_amount: string;
+  total_payable_amount: string;
   platform_fee_amount: string;
   artisan_payout_amount: string;
   currency: string;
   status: EscrowStatus;
   payment_provider: string;
+  authorization_url: string;
   artisan_completion_notes: string;
   dispute_reason: string;
   resolution_notes: string;

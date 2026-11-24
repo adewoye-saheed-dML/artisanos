@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ function EscrowContent() {
   const [openDisputeId, setOpenDisputeId] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState("");
   const [actionErr, setActionErr] = useState("");
+  const verifiedReturnRef = useRef(false);
 
   const { data: escrows, isLoading } = useQuery({
     queryKey: ["escrow-list", roleView, activeOrganization?.id],
@@ -136,6 +137,47 @@ function EscrowContent() {
       queryClient.invalidateQueries({ queryKey: ["escrow-list"] });
     },
   });
+
+  const verifyReturnMutation = useMutation({
+    mutationFn: (reference: string) =>
+      apiRequest<{
+        processed: boolean;
+        detail: string;
+        escrow_id?: string | null;
+        completion_pin?: string;
+      }>("/subscriptions/verify/", {
+        method: "POST",
+        skipOrgHeader: true,
+        body: JSON.stringify({ reference }),
+      }),
+    onSuccess: (res) => {
+      setActionErr("");
+      setActionMsg(`Payment confirmed: ${res.detail}`);
+      if (res.escrow_id && res.completion_pin) {
+        setIssuedPinByEscrow((prev) => ({
+          ...prev,
+          [res.escrow_id as string]: res.completion_pin as string,
+        }));
+      }
+      queryClient.invalidateQueries({ queryKey: ["escrow-list"] });
+    },
+    onError: (err) => {
+      setActionMsg("");
+      setActionErr(err instanceof Error ? err.message : "Could not verify payment.");
+    },
+  });
+
+  // Verify automatically when returning from Paystack Hosted Checkout
+  useEffect(() => {
+    if (verifiedReturnRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("reference") || params.get("trxref");
+    if (ref) {
+      verifiedReturnRef.current = true;
+      verifyReturnMutation.mutate(ref);
+      window.history.replaceState({}, "", "/escrow");
+    }
+  }, [verifyReturnMutation]);
 
   const heldTotal = (escrows || [])
     .filter((e) => ["funded_held", "work_submitted", "disputed"].includes(e.status))
@@ -265,6 +307,8 @@ function EscrowContent() {
             const isCustomer = esc.viewer_role === "customer";
             const isArtisan = esc.viewer_role === "artisan";
             const issuedPin = issuedPinByEscrow[esc.id];
+            const payableAmount =
+              Number(esc.total_payable_amount) > 0 ? esc.total_payable_amount : esc.total_amount;
 
             return (
               <Card key={esc.id} className="overflow-hidden">
@@ -293,10 +337,17 @@ function EscrowContent() {
                     <div className="text-[11px] font-semibold text-emerald-700">
                       Held in Escrow: {formatCurrency(esc.held_in_escrow_amount, esc.currency)}
                     </div>
-                    <div className="text-[10px] text-ink-faint">
-                      Net Artisan Payout: {formatCurrency(esc.artisan_payout_amount, esc.currency)} (3%
-                      escrow fee)
-                    </div>
+                    {isCustomer ? (
+                      <div className="text-[10px] text-ink-faint">
+                        + {formatCurrency(esc.customer_protection_fee_amount, esc.currency)} buyer
+                        protection · You pay {formatCurrency(payableAmount, esc.currency)}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-ink-faint">
+                        Net Artisan Payout: {formatCurrency(esc.artisan_payout_amount, esc.currency)}{" "}
+                        ({esc.artisan_fee_rate_pct}% service fee)
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
@@ -353,13 +404,21 @@ function EscrowContent() {
                     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-amber-200 bg-amber-50/70 p-3.5">
                       <div className="flex-1 text-xs text-amber-900">
                         Fund escrow to lock{" "}
-                        <strong>{formatCurrency(esc.total_amount, esc.currency)}</strong> safely.
-                        The artisan will be notified to start work immediately, and cannot withdraw
-                        until you confirm completion.
+                        <strong>{formatCurrency(esc.total_amount, esc.currency)}</strong> safely
+                        (total to pay{" "}
+                        <strong>{formatCurrency(payableAmount, esc.currency)}</strong>{" "}
+                        including buyer protection). The artisan will be notified to start work
+                        immediately, and cannot withdraw until you confirm completion.
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => fundMutation.mutate(esc.id)}
+                        onClick={() => {
+                          if (esc.authorization_url && typeof window !== "undefined") {
+                            window.location.href = esc.authorization_url;
+                          } else {
+                            fundMutation.mutate(esc.id);
+                          }
+                        }}
                         disabled={fundMutation.isPending}
                       >
                         <Lock className="h-3.5 w-3.5" />

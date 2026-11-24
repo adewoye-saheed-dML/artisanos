@@ -396,6 +396,28 @@ class MarketplaceStorefrontListView(APIView):
                 | (Q(organization__service_wards__lga__state=target_state))
             ).distinct()
 
+        from django.utils import timezone
+        from billing.models import MarketplaceBoost
+
+        now = timezone.now()
+        active_sf_boosts: dict = {}
+        for bst in MarketplaceBoost.objects.filter(
+            status=MarketplaceBoost.Status.ACTIVE,
+            boost_type__in=[
+                MarketplaceBoost.BoostType.AREA_7D,
+                MarketplaceBoost.BoostType.LGA_30D,
+            ],
+            ends_at__gt=now,
+        ).only("organization_id", "boost_type"):
+            badge = (
+                "Top Spotlight"
+                if bst.boost_type == MarketplaceBoost.BoostType.LGA_30D
+                else "Featured Nearby"
+            )
+            # Upgrade badge to Top Spotlight if org holds both
+            if bst.organization_id not in active_sf_boosts or badge == "Top Spotlight":
+                active_sf_boosts[bst.organization_id] = badge
+
         availability_order = {
             Organization.AvailabilityStatus.AVAILABLE: 0,
             Organization.AvailabilityStatus.BUSY: 1,
@@ -407,6 +429,8 @@ class MarketplaceStorefrontListView(APIView):
             org = sf.organization
             service_wards = list(org.service_wards.all())
             service_ward_ids = {w.id for w in service_wards}
+            boost_badge = active_sf_boosts.get(org.id, "")
+            is_featured = bool(boost_badge)
 
             if has_location_filter:
                 prox_rank, prox_tier, prox_label, dist_km = compute_organization_proximity(
@@ -460,12 +484,15 @@ class MarketplaceStorefrontListView(APIView):
                 ),
                 "published_product_count": sf.published_product_count,
                 "published_service_count": sf.published_service_count,
+                "is_featured": is_featured,
+                "boost_badge": boost_badge,
                 "proximity_tier": prox_tier,
                 "proximity_label": prox_label,
                 "distance_km": dist_km,
             }
             sort_key = (
                 prox_rank,
+                0 if is_featured else 1,
                 dist_km if dist_km is not None else 99999.0,
                 availability_order.get(org.availability_status, 2),
                 0 if org.is_verified else 1,
@@ -560,7 +587,28 @@ class MarketplaceProductListView(APIView):
                 | Q(organization__service_wards__lga__state=target_state)
             ).distinct()
 
+        from django.utils import timezone
+        from billing.models import MarketplaceBoost
+
+        now = timezone.now()
+        boosted_product_ids = set(
+            MarketplaceBoost.objects.filter(
+                status=MarketplaceBoost.Status.ACTIVE,
+                boost_type=MarketplaceBoost.BoostType.PRODUCT_7D,
+                product_id__isnull=False,
+                ends_at__gt=now,
+            ).values_list("product_id", flat=True)
+        )
+
         items = list(qs[:120])
+        for item in items:
+            if item.id in boosted_product_ids:
+                item._is_featured = True
+                item._boost_badge = "Featured Listing"
+            else:
+                item._is_featured = False
+                item._boost_badge = ""
+
         if has_location_filter:
             ranked_items: list[tuple[tuple, Product]] = []
             for item in items:
@@ -575,11 +623,20 @@ class MarketplaceProductListView(APIView):
                 item._proximity_label = prox_label
                 item._distance_km = dist_km
                 ranked_items.append(
-                    ((prox_rank, dist_km if dist_km is not None else 99999.0, -item.created_at.timestamp()), item)
+                    (
+                        (
+                            prox_rank,
+                            0 if item._is_featured else 1,
+                            dist_km if dist_km is not None else 99999.0,
+                            -item.created_at.timestamp(),
+                        ),
+                        item,
+                    )
                 )
             ranked_items.sort(key=lambda pair: pair[0])
             items = [item for _, item in ranked_items[:60]]
         else:
+            items.sort(key=lambda item: (0 if item._is_featured else 1, -item.created_at.timestamp()))
             items = items[:60]
 
         return Response(MarketplaceProductCardSerializer(items, many=True).data)

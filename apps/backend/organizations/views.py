@@ -93,6 +93,23 @@ class OrganizationViewSet(
         ).first()
         if not membership or membership.role not in {Membership.Role.OWNER, Membership.Role.MANAGER}:
             raise exceptions.PermissionDenied("Only organization owners or managers can update workspace settings.")
+
+        if "service_wards" in serializer.validated_data or "ward" in serializer.validated_data:
+            from billing.services import get_or_create_subscription
+
+            extra_wards = serializer.validated_data.get("service_wards")
+            if extra_wards is None:
+                extra_wards = list(org.service_wards.all())
+            primary_ward = serializer.validated_data.get("ward", org.ward)
+            covered_ids = {w.id for w in extra_wards}
+            if primary_ward is not None:
+                covered_ids.add(primary_ward.id)
+            plan = get_or_create_subscription(org).plan
+            if len(covered_ids) > plan.max_service_wards:
+                raise exceptions.PermissionDenied(
+                    f"Your {plan.name} plan covers up to {plan.max_service_wards} neighborhood(s) "
+                    f"({len(covered_ids)} selected). Upgrade your plan to cover more areas."
+                )
         serializer.save()
 
     @extend_schema(responses={200: MembershipMemberSerializer(many=True)})

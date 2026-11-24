@@ -33,8 +33,9 @@ from .serializers import (
     PlatformAdminLocationSyncStatusSerializer,
     PlatformAdminOrgSummarySerializer,
     PlatformAdminOverviewSerializer,
+    PlatformAdminRevenueSummarySerializer,
 )
-from .services import get_or_create_subscription
+from .services import get_or_create_subscription, get_platform_revenue_summary
 
 _LOCATION_SYNC_LOCK = threading.RLock()
 _LOCATION_SYNC_STATE: dict[str, object] = {
@@ -130,6 +131,17 @@ class PlatformAdminOverviewView(APIView):
                 "total_orders": Order.objects.count(),
             }
         )
+
+
+class PlatformAdminRevenueView(APIView):
+    """Multi-stream NGN platform revenue overview: Subscriptions (MRR), Spotlight Boosts, and Escrow fees."""
+
+    permission_classes = [IsPlatformAdmin]
+
+    @extend_schema(responses={200: PlatformAdminRevenueSummarySerializer})
+    def get(self, request):
+        summary = get_platform_revenue_summary()
+        return Response(PlatformAdminRevenueSummarySerializer(summary).data)
 
 
 class PlatformAdminOrganizationListView(APIView):

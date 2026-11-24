@@ -57,6 +57,10 @@ class EscrowTransaction(TimeStampedModel):
     materials_advance_pct = models.PositiveSmallIntegerField(default=0)
     materials_advance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     held_in_escrow_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    artisan_fee_rate_pct = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("3.00"))
+    artisan_fee_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    customer_protection_fee_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    total_payable_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     platform_fee_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     artisan_payout_amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default="NGN")
@@ -68,6 +72,7 @@ class EscrowTransaction(TimeStampedModel):
         db_index=True,
     )
     payment_provider = models.CharField(max_length=24, default="paystack")
+    authorization_url = models.URLField(max_length=500, blank=True, default="")
     provider_payload = models.JSONField(default=dict, blank=True)
 
     # SHA-256 hash of 6-digit release PIN issued exclusively to the customer on funding
