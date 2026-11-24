@@ -26,7 +26,7 @@ class NigerianWardSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = NigerianWard
-        fields = ["id", "lga", "lga_name", "state_id", "state_name", "name", "code"]
+        fields = ["id", "lga", "lga_name", "state_id", "state_name", "name", "code", "data_source"]
         read_only_fields = fields
 
 
@@ -52,6 +52,7 @@ class PollingUnitSerializer(serializers.ModelSerializer):
             "landmark",
             "latitude",
             "longitude",
+            "data_source",
         ]
         read_only_fields = fields
 
@@ -64,6 +65,7 @@ class LocationSearchResponseSerializer(serializers.Serializer):
 class LocationDetectInputSerializer(serializers.Serializer):
     latitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     longitude = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    accuracy_meters = serializers.FloatField(required=False, allow_null=True, min_value=0.0)
     state_name = serializers.CharField(max_length=100, required=False, allow_blank=True, default="")
     lga_name = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
     ward_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
@@ -93,8 +95,14 @@ class LocationResolvedResponseSerializer(serializers.Serializer):
     polling_unit = PollingUnitSerializer(allow_null=True)
     landmark = serializers.CharField(allow_blank=True)
     match_source = serializers.CharField()
+    provider = serializers.CharField()
+    confidence = serializers.CharField()
+    accuracy_meters = serializers.FloatField(allow_null=True)
     distance_km = serializers.FloatField(allow_null=True)
     nearby_artisan_count = serializers.IntegerField()
+    nearby_wards = NigerianWardSerializer(many=True)
+    candidate_polling_units = PollingUnitSerializer(many=True)
+    warning = serializers.CharField(allow_blank=True)
 
 
 class LocationStatsSerializer(serializers.Serializer):
@@ -103,4 +111,8 @@ class LocationStatsSerializer(serializers.Serializer):
     total_wards = serializers.IntegerField()
     total_polling_units = serializers.IntegerField()
     geolocated_polling_units = serializers.IntegerField()
+    official_wards = serializers.IntegerField()
+    official_polling_units = serializers.IntegerField()
     is_full_inec_loaded = serializers.BooleanField()
+    detection_provider = serializers.CharField()
+    google_maps_configured = serializers.BooleanField()

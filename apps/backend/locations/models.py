@@ -42,6 +42,12 @@ class NigerianLGA(TimeStampedModel):
 class NigerianWard(TimeStampedModel):
     """INEC Registration Area / Electoral Ward within an LGA."""
 
+    class DataSource(models.TextChoices):
+        INEC = "inec", "Official INEC"
+        GRID3 = "grid3", "GRID3 Operational Boundary"
+        SEED = "seed", "Seeded Baseline"
+        COMMUNITY = "community", "Community Mapped"
+
     lga = models.ForeignKey(
         NigerianLGA,
         on_delete=models.CASCADE,
@@ -49,6 +55,13 @@ class NigerianWard(TimeStampedModel):
     )
     name = models.CharField(max_length=150, db_index=True)
     code = models.CharField(max_length=16, blank=True, default="")
+    alt_names = models.CharField(max_length=300, blank=True, default="")
+    data_source = models.CharField(
+        max_length=24,
+        choices=DataSource.choices,
+        default=DataSource.INEC,
+        db_index=True,
+    )
 
     class Meta:
         ordering = ["name"]
@@ -64,6 +77,12 @@ class NigerianWard(TimeStampedModel):
 class PollingUnit(TimeStampedModel):
     """Hyper-local INEC Polling Unit inside a Nigerian Ward (scales to all 176,846 official INEC PUs)."""
 
+    class DataSource(models.TextChoices):
+        INEC = "inec", "Official INEC"
+        GRID3 = "grid3", "GRID3 Operational"
+        SEED = "seed", "Seeded Baseline"
+        COMMUNITY = "community", "Community Mapped"
+
     ward = models.ForeignKey(
         NigerianWard,
         on_delete=models.CASCADE,
@@ -74,6 +93,12 @@ class PollingUnit(TimeStampedModel):
     landmark = models.CharField(max_length=300, blank=True, default="")
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    data_source = models.CharField(
+        max_length=24,
+        choices=DataSource.choices,
+        default=DataSource.INEC,
+        db_index=True,
+    )
 
     class Meta:
         ordering = ["pu_code", "name"]

@@ -241,12 +241,12 @@ export default function RegisterPage() {
           <div className="mezer-eyebrow justify-center">ArtisanOS Nigeria · All 774 LGAs</div>
           <h1 className="text-2xl font-extrabold tracking-tight text-plum">
             {accountType === "artisan"
-              ? "Register your craft & pin your Ward / Polling Unit"
+              ? "Register your craft & pin your location"
               : "Create your account & discover artisans near you"}
           </h1>
           <p className="text-sm text-ink-soft">
-            Auto-detect or select your Ward &amp; Polling Unit so nearby artisans immediately spring
-            up for your area.
+            Auto-detect or select your neighborhood so nearby artisans immediately appear for your
+            area.
           </p>
 
           {/* Role Toggle: Artisan vs Customer */}
@@ -290,10 +290,10 @@ export default function RegisterPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-plum">
                   <MapPin className="h-3.5 w-3.5 text-brand-700" />
-                  Your Nigerian Ward &amp; Polling Unit
+                  Your Location
                 </span>
                 <span className="text-[11px] font-semibold text-brand-700">
-                  37 States · All 774 LGAs · Auto-detect supported
+                  All 36 States, FCT &amp; 774 LGAs · Auto-detect supported
                 </span>
               </div>
               <NigeriaLocationPicker
@@ -451,7 +451,7 @@ export default function RegisterPage() {
                     className="accent-brand-700"
                     {...register("available_for_callout")}
                   />
-                  Available for on-site / home call-out work in my Ward &amp; nearby Wards
+                  Available for on-site / home call-out work in my neighborhood &amp; nearby areas
                 </label>
 
                 {/* Strict Anti-Scam KYC Verification Block */}

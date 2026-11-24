@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from locations.inec_importer import sync_full_inec_dataset
+from locations.services import cleanup_unofficial_locations
 
 
 class Command(BaseCommand):
@@ -28,6 +29,12 @@ class Command(BaseCommand):
             default=False,
             help="Skip downloading the secondary GPS coordinates enrichment CSV.",
         )
+        parser.add_argument(
+            "--clean-auto",
+            action="store_true",
+            default=False,
+            help="Also remove unreferenced legacy /AUTO/ polling units and orphaned non-official wards after sync.",
+        )
 
     def handle(self, *args, **options):
         stats = sync_full_inec_dataset(
@@ -48,3 +55,12 @@ class Command(BaseCommand):
                 f"  Coords enriched:   {stats['coordinates_enriched']}"
             )
         )
+        if options.get("clean_auto"):
+            cleaned = cleanup_unofficial_locations(dry_run=False)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Cleaned legacy auto locations: {cleaned['legacy_auto_pus_removed']} PUs, "
+                    f"{cleaned['orphaned_wards_removed']} orphaned wards "
+                    f"({cleaned['legacy_auto_pus_protected']} in-use PUs preserved)."
+                )
+            )

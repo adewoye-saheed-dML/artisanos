@@ -229,7 +229,7 @@ def approve_artisan_kyc(
         organization=organization,
         event_type=Notification.EventType.SYSTEM,
         title="KYC Approved — Your Storefront Is Now Live!",
-        message="Your NIN/CAC identity verification has been approved. Customers in your Ward & Polling Unit can now discover and hire you with Escrow protection.",
+        message="Your NIN/CAC identity verification has been approved. Nearby customers in your neighborhood can now discover and hire you with Escrow protection.",
         link_path="/verification",
     )
     return verification

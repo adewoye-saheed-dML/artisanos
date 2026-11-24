@@ -11,11 +11,11 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://artisanos.ng";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "ArtisanOS Nigeria — Find Verified Artisans Near Your Ward & Polling Unit",
+    default: "ArtisanOS Nigeria — Find Verified Artisans Near Your Neighborhood",
     template: "%s | ArtisanOS Nigeria",
   },
   description:
-    "Find verified electricians, plumbers, tailors, carpenters, mechanics, shoemakers, and local makers by Nigerian Ward or Polling Unit. Hire directly for services or buy handcrafted goods with secure payment protection.",
+    "Find verified electricians, plumbers, tailors, carpenters, mechanics, shoemakers, and local makers right in your neighborhood across Nigeria. Hire directly for services or buy handcrafted goods with secure payment protection.",
   keywords: [
     "find artisans in Nigeria",
     "verified artisans near me",
@@ -27,8 +27,8 @@ export const metadata: Metadata = {
     "shoemaker Nigeria",
     "AC repair technician near me",
     "solar inverter installer Nigeria",
-    "polling unit artisan finder",
-    "Nigerian ward artisan directory",
+    "local artisan finder Nigeria",
+    "neighborhood artisan directory Nigeria",
     "NIN verified artisans Nigeria",
     "CAC verified artisans Nigeria",
     "escrow payment for artisans Nigeria",
@@ -47,9 +47,9 @@ export const metadata: Metadata = {
     locale: "en_NG",
     url: SITE_URL,
     siteName: "ArtisanOS Nigeria",
-    title: "ArtisanOS Nigeria — Trusted Artisans in Your Ward & Polling Unit",
+    title: "ArtisanOS Nigeria — Trusted Artisans Right in Your Neighborhood",
     description:
-      "Search verified local artisans by Ward and Polling Unit across Nigeria. Book home repairs, custom services, or buy handcrafted goods with secure payment protection.",
+      "Search verified local artisans near your area across Nigeria. Book home repairs, custom services, or buy handcrafted goods with secure payment protection.",
     images: [
       {
         url: "https://images.pexels.com/photos/3738095/pexels-photo-3738095.jpeg?auto=compress&cs=tinysrgb&w=1200",
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ArtisanOS Nigeria — Find Verified Artisans Near Your Ward & Polling Unit",
+    title: "ArtisanOS Nigeria — Find Verified Artisans Near Your Neighborhood",
     description:
-      "Discover verified electricians, plumbers, tailors, carpenters, and mechanics near your Ward or Polling Unit across Nigeria.",
+      "Discover verified electricians, plumbers, tailors, carpenters, and mechanics right in your neighborhood across Nigeria.",
     images: [
       "https://images.pexels.com/photos/3738095/pexels-photo-3738095.jpeg?auto=compress&cs=tinysrgb&w=1200",
     ],

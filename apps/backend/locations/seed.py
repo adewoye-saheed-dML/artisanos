@@ -291,6 +291,27 @@ DETAILED_LOCATIONS: dict[str, dict[str, dict[str, list[tuple[str, str, str, str,
             ],
         },
     },
+    "KW": {
+        "Ilorin West": {
+            "Ubandawaki": [
+                ("23/08/11/001", "Ojude Ubandawaki", "Ubandawaki, Ilorin West", "8.493200", "4.504800"),
+                ("23/08/11/003", "Govt Girls' Day Sec Sch Pakata", "Pakata Road, Ubandawaki", "8.499500", "4.519200"),
+                ("23/08/11/006", "Barakat L.G.E.A Sch", "Barakat, Ubandawaki", "8.487500", "4.494500"),
+            ],
+            "Adewole": [
+                ("23/08/01/001", "Adewole Estate Open Space", "Adewole Housing Estate, Ilorin West", "8.479200", "4.516800"),
+            ],
+            "Baboko": [
+                ("23/08/04/001", "Baboko L.G.E.A Primary School", "Baboko / Oja Tuntun Axis, Ilorin West", "8.487700", "4.538000"),
+            ],
+            "Alanamu": [
+                ("23/08/03/001", "Balogun Alanamu Central Open Space", "Alanamu, Ilorin West", "8.497800", "4.544600"),
+            ],
+            "Oko-Erin": [
+                ("23/08/09/001", "Oko-Erin L.G.E.A School", "Oko-Erin, Ilorin West", "8.474800", "4.531500"),
+            ],
+        },
+    },
 }
 
 # Representative capitals/hubs for all remaining states so every single one of Nigeria's 37 states
@@ -312,7 +333,6 @@ DEFAULT_STATE_HUBS: dict[str, tuple[str, str, str, str]] = {
     "KT": ("Katsina", "Kofar Kwaya / GRA", "12.990800", "7.601800"),
     "KB": ("Birnin Kebbi", "Badariya / Central", "12.453900", "4.197500"),
     "KG": ("Lokoja", "Ganaja / Adankolo", "7.802300", "6.733300"),
-    "KW": ("Ilorin West", "Tanke / Taiwo Road", "8.496600", "4.542100"),
     "NA": ("Lafia", "Shabu / Modern Market", "8.491700", "8.516700"),
     "NI": ("Chanchaga", "Tunga / Bosso", "9.615200", "6.547800"),
     "ON": ("Akure South", "Alagbaka / Oba Adesida", "7.257100", "5.205800"),
@@ -378,11 +398,19 @@ def seed_nigeria_locations() -> dict[str, int]:
                 ward, ward_created = NigerianWard.objects.get_or_create(
                     lga=lga,
                     name=ward_name,
-                    defaults={"code": f"{ward_idx:02d}"},
+                    defaults={
+                        "code": f"{ward_idx:02d}",
+                        "data_source": NigerianWard.DataSource.SEED,
+                    },
                 )
                 if ward_created:
                     ward_count += 1
                 for pu_code, pu_name, landmark, lat, lon in pus:
+                    pu_source = (
+                        PollingUnit.DataSource.INEC
+                        if pu_code[:2].isdigit()
+                        else PollingUnit.DataSource.SEED
+                    )
                     _, pu_created = PollingUnit.objects.get_or_create(
                         pu_code=pu_code,
                         defaults={
@@ -391,6 +419,7 @@ def seed_nigeria_locations() -> dict[str, int]:
                             "landmark": landmark,
                             "latitude": Decimal(lat),
                             "longitude": Decimal(lon),
+                            "data_source": pu_source,
                         },
                     )
                     if pu_created:
@@ -409,7 +438,7 @@ def seed_nigeria_locations() -> dict[str, int]:
         ward, ward_created = NigerianWard.objects.get_or_create(
             lga=lga,
             name=ward_name,
-            defaults={"code": "01"},
+            defaults={"code": "01", "data_source": NigerianWard.DataSource.SEED},
         )
         if ward_created:
             ward_count += 1
@@ -423,6 +452,7 @@ def seed_nigeria_locations() -> dict[str, int]:
                     "landmark": f"{lga_name}, {state.name}",
                     "latitude": Decimal(lat),
                     "longitude": Decimal(lon),
+                    "data_source": PollingUnit.DataSource.SEED,
                 },
             )
             if pu_created:

@@ -50,7 +50,7 @@ const NAV_ITEMS = [
   { href: "/templates", label: "Templates", icon: Ruler },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/billing", label: "Billing & Plans", icon: CreditCard },
-  { href: "/settings", label: "Workspace & Ward", icon: Settings },
+  { href: "/settings", label: "Workspace & Location", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

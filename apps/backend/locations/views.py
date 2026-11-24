@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -129,6 +130,7 @@ class LocationUnifiedSearchView(APIView):
 
         wards_qs = NigerianWard.objects.select_related("lga", "lga__state").filter(
             Q(name__icontains=query)
+            | Q(alt_names__icontains=query)
             | Q(lga__name__icontains=query)
             | Q(lga__state__name__icontains=query)
         )
@@ -137,6 +139,7 @@ class LocationUnifiedSearchView(APIView):
             | Q(pu_code__icontains=query)
             | Q(landmark__icontains=query)
             | Q(ward__name__icontains=query)
+            | Q(ward__alt_names__icontains=query)
         )
         if state_id:
             wards_qs = wards_qs.filter(lga__state_id=state_id)
@@ -166,6 +169,11 @@ class LocationStatsView(APIView):
     @extend_schema(responses={200: LocationStatsSerializer})
     def get(self, request):
         total_pus = PollingUnit.objects.count()
+        google_enabled = bool(getattr(settings, "GOOGLE_MAPS_API_KEY", "").strip())
+        official_sources = [
+            NigerianWard.DataSource.INEC,
+            NigerianWard.DataSource.GRID3,
+        ]
         payload = {
             "total_states": NigerianState.objects.count(),
             "total_lgas": NigerianLGA.objects.count(),
@@ -174,7 +182,13 @@ class LocationStatsView(APIView):
             "geolocated_polling_units": PollingUnit.objects.filter(
                 latitude__isnull=False, longitude__isnull=False
             ).count(),
+            "official_wards": NigerianWard.objects.filter(data_source__in=official_sources).count(),
+            "official_polling_units": PollingUnit.objects.filter(
+                data_source=PollingUnit.DataSource.INEC
+            ).count(),
             "is_full_inec_loaded": total_pus >= 100000,
+            "detection_provider": "grid3_v4+google_maps" if google_enabled else "grid3_v4+nominatim",
+            "google_maps_configured": google_enabled,
         }
         return Response(LocationStatsSerializer(payload).data)
 
@@ -215,6 +229,7 @@ class LocationDetectView(APIView):
         result = detect_nigerian_location(
             latitude=data.get("latitude"),
             longitude=data.get("longitude"),
+            accuracy_meters=data.get("accuracy_meters"),
             state_name=data.get("state_name", ""),
             lga_name=data.get("lga_name", ""),
             ward_name=data.get("ward_name", ""),
@@ -229,8 +244,16 @@ class LocationDetectView(APIView):
             "polling_unit": PollingUnitSerializer(result["polling_unit"]).data if result["polling_unit"] else None,
             "landmark": result["landmark"],
             "match_source": result["match_source"],
+            "provider": result["provider"],
+            "confidence": result["confidence"],
+            "accuracy_meters": result["accuracy_meters"],
             "distance_km": result["distance_km"],
             "nearby_artisan_count": nearby_count,
+            "nearby_wards": NigerianWardSerializer(result["nearby_wards"], many=True).data,
+            "candidate_polling_units": PollingUnitSerializer(
+                result["candidate_polling_units"], many=True
+            ).data,
+            "warning": result["warning"],
         }
         return Response(payload, status=status.HTTP_200_OK)
 
@@ -269,7 +292,18 @@ class LocationEnsureView(APIView):
             "polling_unit": PollingUnitSerializer(pu).data if pu else None,
             "landmark": (pu.landmark if pu else data.get("landmark", "")),
             "match_source": "community_mapped",
+            "provider": "explicit_input",
+            "confidence": "high",
+            "accuracy_meters": None,
             "distance_km": None,
             "nearby_artisan_count": nearby_count,
+            "nearby_wards": [],
+            "candidate_polling_units": PollingUnitSerializer(
+                PollingUnit.objects.select_related("ward", "ward__lga", "ward__lga__state")
+                .filter(ward=ward)
+                .order_by("pu_code", "name")[:8],
+                many=True,
+            ).data,
+            "warning": "",
         }
         return Response(payload, status=status.HTTP_200_OK)

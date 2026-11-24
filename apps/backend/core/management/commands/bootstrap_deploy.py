@@ -7,6 +7,7 @@ from accounts.models import User
 from billing.seed import seed_default_plans
 from locations.models import NigerianLGA, NigerianState, PollingUnit
 from locations.seed import seed_nigeria_locations
+from locations.services import cleanup_unofficial_locations
 from measurement_templates.seed import seed_system_templates
 from organizations.models import Organization
 
@@ -51,6 +52,24 @@ class Command(BaseCommand):
                     f"{stats['total_polling_units']} polling units."
                 )
             )
+
+        # 2b. Remove any unreferenced legacy /AUTO/ rows created before GRID3 standardization (fast, safe)
+        cleanup = cleanup_unofficial_locations(dry_run=False)
+        if cleanup["legacy_auto_pus_removed"] or cleanup["orphaned_wards_removed"]:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Cleaned legacy auto-generated locations: {cleanup['legacy_auto_pus_removed']} PUs, "
+                    f"{cleanup['orphaned_wards_removed']} orphaned wards."
+                )
+            )
+
+        # 2c. Optional full official INEC sync (176,846 PUs + 8,809 Wards)
+        if _env_bool("SYNC_FULL_INEC_ON_BOOT", False):
+            if PollingUnit.objects.count() >= 100000:
+                self.stdout.write("Full INEC polling unit dataset already synced; skipping.")
+            else:
+                self.stdout.write("SYNC_FULL_INEC_ON_BOOT=True -> syncing full official INEC dataset...")
+                call_command("sync_inec_polling_units", clean_auto=True, stdout=self.stdout)
 
         # 3. Optional env-var Platform Admin / Superuser bootstrap (no Shell required)
         admin_email = (os.getenv("DJANGO_SUPERUSER_EMAIL") or "").strip().lower()

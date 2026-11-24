@@ -93,8 +93,8 @@ const FAQ_ITEMS = [
     a: "When you book through our protected payment option, your funds are held safely in escrow and a private 6-digit completion code is generated for you. Full payment is only released to the artisan after you inspect the completed work and enter your code.",
   },
   {
-    q: "Why does ArtisanOS organize search by Ward and Polling Unit?",
-    a: "Searching by city alone often returns service providers miles away. By mapping Nigeria's 36 States, FCT Abuja, 774 LGAs, Electoral Wards, and Polling Units, ArtisanOS surfaces reliable professionals closest to your neighborhood first.",
+    q: "How does ArtisanOS find artisans closest to my neighborhood?",
+    a: "Searching by city alone often returns service providers miles away. ArtisanOS maps neighborhoods and local landmarks across all 36 States, FCT Abuja, and 774 LGAs so reliable professionals closest to your street show up first.",
   },
   {
     q: "Can I purchase finished products as well as book on-site services?",
@@ -110,7 +110,7 @@ const JSON_LD_SCHEMA = {
       name: "ArtisanOS Nigeria",
       url: "https://artisanos.ng",
       description:
-        "Nigeria's neighborhood marketplace for hiring verified artisans by Ward and Polling Unit, buying handcrafted goods, and paying securely upon completion.",
+        "Nigeria's neighborhood marketplace for hiring verified local artisans, buying handcrafted goods, and paying securely upon completion.",
       areaServed: { "@type": "Country", name: "Nigeria" },
     },
     {
@@ -343,7 +343,7 @@ export default function HomePage() {
 
               <p className="max-w-xl text-sm leading-relaxed text-ink-soft sm:text-lg">
                 Search verified tailors, electricians, plumbers, carpenters, mechanics, and local
-                makers by Ward or Polling Unit. Hire directly for on-site work or purchase
+                makers right in your area. Hire directly for on-site work or purchase
                 handcrafted goods with complete peace of mind.
               </p>
 
@@ -444,7 +444,7 @@ export default function HomePage() {
                 Search artisans and goods near your location
               </div>
               <span className="rounded-full bg-surface-blush px-3 py-0.5 text-[11px] font-bold text-brand-700">
-                Ward &amp; Polling Unit Lookup
+                Neighborhood Lookup
               </span>
             </div>
 
@@ -481,8 +481,7 @@ export default function HomePage() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 <p className="text-xs text-ink-soft">
-                  Results are ranked by proximity—starting from your Polling Unit and Electoral Ward
-                  outward.
+                  Results are ranked closest to your street and neighborhood first.
                 </p>
                 <Button type="submit" size="lg" className="w-full sm:w-auto">
                   <Search className="h-4 w-4" />
@@ -615,7 +614,7 @@ export default function HomePage() {
                 <li className="flex items-start gap-2.5">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                   <span>
-                    Search down to your Ward or Polling Unit for quicker response times and lower
+                    Search down to your exact neighborhood for quicker response times and lower
                     transport fees.
                   </span>
                 </li>

@@ -18,13 +18,13 @@ class NigerianLGAAdmin(admin.ModelAdmin):
 
 @admin.register(NigerianWard)
 class NigerianWardAdmin(admin.ModelAdmin):
-    list_display = ("name", "lga", "code")
-    list_filter = ("lga__state",)
-    search_fields = ("name", "lga__name", "lga__state__name")
+    list_display = ("name", "lga", "code", "data_source")
+    list_filter = ("data_source", "lga__state")
+    search_fields = ("name", "alt_names", "lga__name", "lga__state__name")
 
 
 @admin.register(PollingUnit)
 class PollingUnitAdmin(admin.ModelAdmin):
-    list_display = ("pu_code", "name", "ward", "latitude", "longitude")
-    list_filter = ("ward__lga__state",)
+    list_display = ("pu_code", "name", "ward", "data_source", "latitude", "longitude")
+    list_filter = ("data_source", "ward__lga__state")
     search_fields = ("pu_code", "name", "landmark", "ward__name")

@@ -445,12 +445,279 @@ def test_real_inec_csv_bulk_importer_and_coordinate_enrichment():
     assert str(pu.latitude) == "5.121450"
     assert str(pu.longitude) == "7.369810"
 
-    # 3. Stats endpoint returns real live database counts
+    # 3. Stats endpoint returns real live database counts + detection provider metadata
     pub = APIClient()
     stats_res = pub.get(reverse("location-stats"))
     assert stats_res.status_code == 200
     assert stats_res.data["total_states"] == 37
     assert stats_res.data["total_lgas"] == 774
     assert stats_res.data["total_polling_units"] >= 3
+    assert stats_res.data["detection_provider"] in {"grid3_v4+nominatim", "grid3_v4+google_maps"}
+
+    # 4. Importer rejects invalid / out-of-Nigeria coordinates cleanly
+    bad_geo_csv = io.StringIO(
+        "state_name,local_government,ward_name,name,location.latitude,location.longitude\n"
+        "Kwara,Ilorin West,Ubandawaki,Ojude Ubandawaki,51.507400,-0.127800\n"
+    )
+    import_inec_csv_stream(bad_geo_csv)
+    ubandawaki_pu = PollingUnit.objects.filter(
+        ward__lga__name="Ilorin West", ward__name="Ubandawaki", name="Ojude Ubandawaki"
+    ).first()
+    assert ubandawaki_pu is not None
+    # Seeded valid coordinate must not be overwritten with out-of-Nigeria London coords
+    assert ubandawaki_pu.latitude != Decimal("51.507400")
+
+
+@pytest.mark.django_db
+def test_grid3_ward_polygon_ubandawaki_never_pollutes_with_oja_tuntun(settings, monkeypatch):
+    seed_nigeria_locations()
+    settings.LOCATION_EXTERNAL_LOOKUP_ENABLED = True
+    settings.GOOGLE_MAPS_API_KEY = ""
+
+    from locations import services as loc_services
+
+    # Simulate live GRID3 v4.0 Point-in-Polygon + Buffer response for Ubandawaki Ward, Ilorin West
+    def fake_http_get_json(url: str, *, timeout: float, user_agent: str):
+        if "GRID3_NGA_operational_wards_v4_0" in url:
+            if "distance=" in url:
+                return {
+                    "features": [
+                        {
+                            "attributes": {
+                                "state": "Kwara",
+                                "statecode": "KW",
+                                "lga": "Ilorin West",
+                                "lga_alt_names": "Ilorin-West",
+                                "ward": "Ubandawaki",
+                                "ward_alt_names": "",
+                            }
+                        },
+                        {
+                            "attributes": {
+                                "state": "Kwara",
+                                "statecode": "KW",
+                                "lga": "Ilorin West",
+                                "lga_alt_names": "Ilorin-West",
+                                "ward": "Adewole",
+                                "ward_alt_names": "",
+                            }
+                        },
+                    ]
+                }
+            return {
+                "features": [
+                    {
+                        "attributes": {
+                            "state": "Kwara",
+                            "statecode": "KW",
+                            "lga": "Ilorin West",
+                            "lga_alt_names": "Ilorin-West",
+                            "ward": "Ubandawaki",
+                            "ward_alt_names": "",
+                        }
+                    }
+                ]
+            }
+        # Nominatim returns the exact buggy OSM town string that previously caused Oja Tuntun pollution
+        if "nominatim.openstreetmap.org" in url:
+            return {
+                "address": {
+                    "road": "Pakata Road",
+                    "town": "Oja Tutun, Oko Erin, Nigeria",
+                    "county": "Ilorin West",
+                    "state": "Kwara",
+                }
+            }
+        return None
+
+    monkeypatch.setattr(loc_services, "_http_get_json", fake_http_get_json)
+
+    pub = APIClient()
+    res = pub.post(
+        reverse("location-detect"),
+        {
+            "latitude": "8.489773",
+            "longitude": "4.494311",
+            "accuracy_meters": 650,
+        },
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["provider"] == "grid3_v4"
+    assert res.data["state"]["code"] == "KW"
+    assert res.data["lga"]["name"] == "Ilorin West"
+    assert res.data["ward"]["name"] == "Ubandawaki"
+    assert res.data["polling_unit"]["ward_name"] == "Ubandawaki"
+    assert res.data["landmark"] == "Pakata Road"
+    assert res.data["confidence"] == "medium"
+    assert any(w["name"] == "Adewole" for w in res.data["nearby_wards"])
+    assert len(res.data["candidate_polling_units"]) >= 1
+    assert all(p["ward_name"] == "Ubandawaki" for p in res.data["candidate_polling_units"])
+    # Critical: Oja Tutun must NEVER be created as a fake Ward!
+    assert not NigerianWard.objects.filter(name__icontains="Oja Tutun").exists()
+
+
+@pytest.mark.django_db
+def test_nominatim_fallback_never_fabricates_fake_ward_and_google_maps_enriches(settings, monkeypatch):
+    seed_nigeria_locations()
+    settings.LOCATION_EXTERNAL_LOOKUP_ENABLED = True
+    settings.GOOGLE_MAPS_API_KEY = ""
+
+    from locations import services as loc_services
+
+    # 1. GRID3 unavailable + far from seeded PU + Nominatim returns "Oja Tutun, Oko Erin, Nigeria"
+    def fake_nominatim_only(url: str, *, timeout: float, user_agent: str):
+        if "GRID3_NGA_operational_wards_v4_0" in url:
+            return None
+        if "nominatim.openstreetmap.org" in url:
+            return {
+                "address": {
+                    "town": "Oja Tutun, Oko Erin, Nigeria",
+                    "county": "Asa",
+                    "state": "Kwara",
+                }
+            }
+        return None
+
+    monkeypatch.setattr(loc_services, "_http_get_json", fake_nominatim_only)
+
+    pub = APIClient()
+    res = pub.post(
+        reverse("location-detect"),
+        {"latitude": "8.360000", "longitude": "4.360000"},
+        format="json",
+    )
+    assert res.status_code == 200
+    assert res.data["match_source"] == "reverse_geocode_lga_only"
+    assert res.data["provider"] == "nominatim"
+    assert res.data["state"]["code"] == "KW"
+    assert res.data["lga"]["name"] == "Asa"
+    assert res.data["ward"] is None
+    assert res.data["polling_unit"] is None
+    assert not NigerianWard.objects.filter(name__icontains="Oja Tutun").exists()
+
+    # 2. Google Maps configured + GRID3 matches ward with alt_names -> Google enriches landmark
+    settings.GOOGLE_MAPS_API_KEY = "test-google-key"
+    loc_services.clear_location_lookup_caches()
+    ilorin_west = NigerianLGA.objects.get(state__code="KW", name="Ilorin West")
+    magaji_ward = NigerianWard.objects.create(
+        lga=ilorin_west,
+        name="Magaji Ngeri",
+        code="06",
+        data_source=NigerianWard.DataSource.INEC,
+    )
+
+    def fake_grid3_plus_google(url: str, *, timeout: float, user_agent: str):
+        if "GRID3_NGA_operational_wards_v4_0" in url:
+            if "distance=" in url:
+                return {"features": []}
+            return {
+                "features": [
+                    {
+                        "attributes": {
+                            "state": "Kwara",
+                            "statecode": "KW",
+                            "lga": "Ilorin West",
+                            "lga_alt_names": "Ilorin-West",
+                            "ward": "M/Ngeri",
+                            "ward_alt_names": "Magaji Geri, Magaji Ngeri, Magajingeri",
+                        }
+                    }
+                ]
+            }
+        if "maps.googleapis.com/maps/api/geocode/json" in url:
+            return {
+                "status": "OK",
+                "results": [
+                    {
+                        "formatted_address": "Taiwo Road, Ilorin, Kwara, Nigeria",
+                        "address_components": [
+                            {"long_name": "Taiwo Road", "types": ["route"]},
+                            {"long_name": "Ilorin West", "types": ["administrative_area_level_2"]},
+                            {"long_name": "Kwara", "types": ["administrative_area_level_1"]},
+                        ],
+                    }
+                ],
+            }
+        return None
+
+    monkeypatch.setattr(loc_services, "_http_get_json", fake_grid3_plus_google)
+
+    res2 = pub.post(
+        reverse("location-detect"),
+        {"latitude": "8.491000", "longitude": "4.552000", "accuracy_meters": 40},
+        format="json",
+    )
+    assert res2.status_code == 200
+    assert res2.data["provider"] == "grid3_v4"
+    assert res2.data["ward"]["id"] == str(magaji_ward.id)
+    assert res2.data["ward"]["name"] == "Magaji Ngeri"
+    assert res2.data["landmark"] == "Taiwo Road"
+    assert res2.data["confidence"] == "high"
+    magaji_ward.refresh_from_db()
+    assert "Magaji Ngeri" in magaji_ward.alt_names
+
+
+@pytest.mark.django_db
+def test_outside_nigeria_bounds_and_cleanup_unofficial_locations():
+    seed_nigeria_locations()
+    pub = APIClient()
+
+    # 1. Coordinates outside Nigeria are rejected cleanly
+    outside_res = pub.post(
+        reverse("location-detect"),
+        {"latitude": "51.507400", "longitude": "-0.127800"},
+        format="json",
+    )
+    assert outside_res.status_code == 200
+    assert outside_res.data["match_source"] == "outside_nigeria"
+    assert outside_res.data["state"] is None
+    assert "outside Nigeria" in outside_res.data["warning"]
+
+    # 2. Cleanup removes unreferenced legacy /AUTO/ PUs and fake wards, while preserving referenced ones
+    from locations.services import cleanup_unofficial_locations
+
+    ilorin_west = NigerianLGA.objects.get(state__code="KW", name="Ilorin West")
+    fake_ward = NigerianWard.objects.create(
+        lga=ilorin_west,
+        name="Oja Tutun, Oko Erin, Nigeria",
+        code="99",
+        data_source=NigerianWard.DataSource.COMMUNITY,
+    )
+    fake_pu = PollingUnit.objects.create(
+        ward=fake_ward,
+        name="Oja Tutun, Oko Erin, Nigeria Axis",
+        pu_code="KW/AUTO/DEAD01",
+        data_source=PollingUnit.DataSource.COMMUNITY,
+    )
+    in_use_pu = PollingUnit.objects.create(
+        ward=NigerianWard.objects.get(lga=ilorin_west, name="Ubandawaki"),
+        name="Legacy Referenced PU",
+        pu_code="KW/AUTO/USED01",
+        data_source=PollingUnit.DataSource.COMMUNITY,
+    )
+    User.objects.create_user(
+        email="legacy-user@test.ng",
+        password="StrongPassword123!",
+        full_name="Legacy User",
+        state=ilorin_west.state,
+        lga=ilorin_west,
+        ward=in_use_pu.ward,
+        polling_unit=in_use_pu,
+    )
+
+    dry = cleanup_unofficial_locations(dry_run=True)
+    assert dry["legacy_auto_pus_removed"] == 1
+    assert dry["legacy_auto_pus_protected"] == 1
+    assert dry["orphaned_wards_removed"] == 1
+    assert PollingUnit.objects.filter(id=fake_pu.id).exists()
+
+    applied = cleanup_unofficial_locations(dry_run=False)
+    assert applied["legacy_auto_pus_removed"] == 1
+    assert applied["orphaned_wards_removed"] == 1
+    assert not PollingUnit.objects.filter(id=fake_pu.id).exists()
+    assert not NigerianWard.objects.filter(id=fake_ward.id).exists()
+    assert PollingUnit.objects.filter(id=in_use_pu.id).exists()
+
 
 

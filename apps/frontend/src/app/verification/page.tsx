@@ -151,8 +151,8 @@ export default function VerificationPage() {
                 Identity &amp; Business Verification
               </h1>
               <p className="mt-1 max-w-2xl text-xs text-plum-soft">
-                Verified artisans earn the public NIN/CAC trust badge, appear in nearby Ward &amp;
-                Polling Unit searches, and can accept Escrow-protected customer jobs.
+                Verified artisans earn the public NIN/CAC trust badge, appear in nearby local
+                searches, and can accept Escrow-protected customer jobs.
               </p>
             </div>
             <StatusBadge status={status} className="px-4 py-1 text-xs" />
@@ -168,7 +168,7 @@ export default function VerificationPage() {
               <p className="mt-0.5 text-xs text-emerald-800">
                 Your identity (NIN {kyc?.nin_masked}
                 {kyc?.cac_number ? ` · CAC ${kyc.cac_number}` : ""}) is approved. Customers in your
-                Ward &amp; Polling Unit can discover your storefront and fund Escrow jobs with you.
+                neighborhood can discover your storefront and fund Escrow jobs with you.
               </p>
             </div>
           </div>

@@ -298,17 +298,12 @@ export default function PublicStorefrontPage() {
                     {sf.polling_unit_name && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3 py-1.5 font-semibold text-white">
                         <MapPin className="h-3.5 w-3.5 text-brand-300" />
-                        PU: {sf.polling_unit_name}
-                        {sf.polling_unit_code ? ` [${sf.polling_unit_code}]` : ""}
+                        {sf.polling_unit_name}
                       </span>
                     )}
                     {(sf.ward_name || sf.lga_name || sf.state_name) && (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">
-                        {[
-                          sf.ward_name ? `Ward: ${sf.ward_name}` : "",
-                          sf.lga_name,
-                          sf.state_name,
-                        ]
+                        {[sf.ward_name, sf.lga_name, sf.state_name]
                           .filter(Boolean)
                           .join(" · ")}
                       </span>
@@ -661,7 +656,7 @@ export default function PublicStorefrontPage() {
                       {/* Optional Customer Ward / Polling Unit for On-Site Work or Delivery */}
                       <div className="rounded-mezer-sm border border-line-soft bg-surface p-4 space-y-3">
                         <div className="text-xs font-extrabold uppercase tracking-wider text-plum">
-                          Your Location (Optional — helps artisan reach your Ward / Polling Unit)
+                          Your Location (Optional — helps the artisan reach your area)
                         </div>
                         <NigeriaLocationPicker
                           value={customerLocation}

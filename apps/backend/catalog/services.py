@@ -341,13 +341,13 @@ def compute_organization_proximity(
         service_ward_ids = {w.id for w in org.service_wards.all()}
 
     if target_polling_unit is not None and org.polling_unit_id == target_polling_unit.id:
-        return (1, "same_polling_unit", "At your Polling Unit", 0.0 if distance_km is None else distance_km)
+        return (1, "same_polling_unit", "Right in your area", 0.0 if distance_km is None else distance_km)
 
     if effective_ward is not None and org.ward_id == effective_ward.id:
-        return (2, "same_ward", "In your Ward", distance_km)
+        return (2, "same_ward", "In your neighborhood", distance_km)
 
     if effective_ward is not None and effective_ward.id in service_ward_ids:
-        return (3, "covers_ward", "Covers your Ward", distance_km)
+        return (3, "covers_ward", "Serves your neighborhood", distance_km)
 
     if effective_lga is not None and org.lga_id == effective_lga.id:
         return (4, "same_lga", "Nearby in your LGA", distance_km)

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, LocateFixed, MapPin, PlusCircle, Search, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, LocateFixed, MapPin, PlusCircle, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,9 @@ export interface DetectedLocationMeta {
   longitude?: string;
   nearbyArtisanCount?: number;
   matchSource?: string;
+  provider?: string;
+  confidence?: "high" | "medium" | "low";
+  accuracyMeters?: number | null;
 }
 
 interface NigeriaLocationPickerProps {
@@ -63,7 +66,11 @@ export function NigeriaLocationPicker({
   // Auto-detect state
   const [detecting, setDetecting] = useState(false);
   const [detectBanner, setDetectBanner] = useState("");
+  const [detectWarning, setDetectWarning] = useState("");
   const [detectError, setDetectError] = useState("");
+  const [detectConfidence, setDetectConfidence] = useState<"high" | "medium" | "low" | "">("");
+  const [nearbyWards, setNearbyWards] = useState<NigerianWard[]>([]);
+  const [candidatePus, setCandidatePus] = useState<PollingUnit[]>([]);
   const didAutoDetectRef = useRef(false);
 
   // Add missing Ward / Polling Unit inline state (for all 774 LGAs)
@@ -134,17 +141,30 @@ export function NigeriaLocationPicker({
       }
       setDetecting(true);
       setDetectError("");
-      if (!silent) setDetectBanner("");
+      setDetectWarning("");
+      setNearbyWards([]);
+      setCandidatePus([]);
+      if (!silent) {
+        setDetectBanner("");
+        setDetectConfidence("");
+      }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude.toFixed(6);
           const lng = position.coords.longitude.toFixed(6);
+          const accuracyMeters = Number.isFinite(position.coords.accuracy)
+            ? Math.round(position.coords.accuracy)
+            : null;
           try {
             const resolved = await apiRequest<LocationResolvedResponse>("/locations/detect/", {
               method: "POST",
               skipOrgHeader: true,
-              body: JSON.stringify({ latitude: lat, longitude: lng }),
+              body: JSON.stringify({
+                latitude: lat,
+                longitude: lng,
+                accuracy_meters: accuracyMeters,
+              }),
             });
 
             if (resolved.state && resolved.lga) {
@@ -164,27 +184,36 @@ export function NigeriaLocationPicker({
                 longitude: lng,
                 nearbyArtisanCount: resolved.nearby_artisan_count,
                 matchSource: resolved.match_source,
+                provider: resolved.provider,
+                confidence: resolved.confidence,
+                accuracyMeters: resolved.accuracy_meters ?? accuracyMeters,
               });
               const locSummary = [
                 resolved.polling_unit?.name,
-                resolved.ward ? `${resolved.ward.name} Ward` : "",
+                resolved.ward?.name || "",
                 resolved.lga.name,
                 resolved.state.name,
               ]
                 .filter(Boolean)
                 .join(" · ");
+              const accNote = accuracyMeters ? ` (±${accuracyMeters}m)` : "";
+              setDetectConfidence(resolved.confidence || "medium");
               setDetectBanner(
                 `Detected: ${locSummary}${
                   resolved.nearby_artisan_count > 0
-                    ? ` (${resolved.nearby_artisan_count} nearby ${
+                    ? ` · ${resolved.nearby_artisan_count} nearby ${
                         resolved.nearby_artisan_count === 1 ? "artisan" : "artisans"
-                      })`
+                      }`
                     : ""
-                }`
+                }${accNote}`
               );
+              setDetectWarning(resolved.warning || "");
+              setNearbyWards(resolved.nearby_wards || []);
+              setCandidatePus(resolved.candidate_polling_units || []);
             } else if (!silent) {
               setDetectError(
-                "Could not map your GPS point to a Nigerian Ward yet. Choose your State & LGA below and add your Ward/Polling Unit."
+                resolved.warning ||
+                  "Could not detect your neighborhood yet. Choose your State & LGA below."
               );
             }
           } catch (err) {
@@ -202,16 +231,16 @@ export function NigeriaLocationPicker({
           if (!silent) {
             if (geoErr.code === geoErr.PERMISSION_DENIED) {
               setDetectError(
-                "Location permission was blocked. Allow location access or pick your State → LGA → Ward below."
+                "Location permission was blocked. Allow location access or pick your State, LGA, and area below."
               );
             } else {
               setDetectError(
-                "Could not read GPS signal. Select your State → LGA → Ward → Polling Unit below."
+                "Could not read GPS signal. Select your State, LGA, and neighborhood below."
               );
             }
           }
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     },
     [onChange, onDetectedMeta, queryClient]
@@ -259,9 +288,9 @@ export function NigeriaLocationPicker({
           pollingUnitId: resolved.polling_unit?.id || "",
         });
         setDetectBanner(
-          `Mapped: ${
+          `Saved: ${
             resolved.polling_unit ? `${resolved.polling_unit.name} · ` : ""
-          }${resolved.ward.name} Ward, ${resolved.lga.name}`
+          }${resolved.ward.name}, ${resolved.lga.name}`
         );
       }
       setCustomWardName("");
@@ -270,7 +299,7 @@ export function NigeriaLocationPicker({
       setShowAddForm(false);
     },
     onError: (err) => {
-      setCustomError(err instanceof Error ? err.message : "Could not save Ward / Polling Unit.");
+      setCustomError(err instanceof Error ? err.message : "Could not save location.");
     },
   });
 
@@ -295,7 +324,7 @@ export function NigeriaLocationPicker({
                   setQuickQuery(e.target.value);
                   setDropdownOpen(true);
                 }}
-                placeholder="Search Polling Unit, Ward, or street (e.g. Allen, Wuse, Surulere, Yaba)..."
+                placeholder="Search area, neighborhood, or landmark (e.g. Allen, Wuse, Surulere, Pakata)..."
                 className="mt-0 bg-white pl-10 pr-9"
               />
               {quickQuery && (
@@ -316,15 +345,15 @@ export function NigeriaLocationPicker({
                 <div className="absolute left-0 right-0 z-30 mt-1.5 max-h-72 overflow-y-auto rounded-mezer-sm border border-line bg-white p-2 shadow-card-hover">
                   {!hasSearchHits ? (
                     <div className="px-3 py-3 text-xs text-ink-faint">
-                      No saved Ward or Polling Unit matched &ldquo;{trimmedQuery}&rdquo; yet.
-                      Select your State &amp; LGA below (all 774 LGAs mapped) to add it.
+                      No saved area matched &ldquo;{trimmedQuery}&rdquo; yet.
+                      Select your State &amp; LGA below to add it.
                     </div>
                   ) : (
                     <div className="space-y-2">
                       {searchResults && searchResults.polling_units.length > 0 && (
                         <div>
                           <div className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-brand-700">
-                            Polling Units (Hyper-Local)
+                            Nearby Spots &amp; Landmarks
                           </div>
                           {searchResults.polling_units.map((pu) => (
                             <button
@@ -345,13 +374,10 @@ export function NigeriaLocationPicker({
                               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-600" />
                               <div className="min-w-0">
                                 <div className="truncate text-xs font-bold text-plum">
-                                  {pu.name}{" "}
-                                  <span className="font-mono text-[10px] font-normal text-ink-faint">
-                                    [{pu.pu_code}]
-                                  </span>
+                                  {pu.name}
                                 </div>
                                 <div className="truncate text-[11px] text-ink-soft">
-                                  Ward: {pu.ward_name} · {pu.lga_name}, {pu.state_name}
+                                  {pu.ward_name} · {pu.lga_name}, {pu.state_name}
                                 </div>
                               </div>
                             </button>
@@ -362,7 +388,7 @@ export function NigeriaLocationPicker({
                       {searchResults && searchResults.wards.length > 0 && (
                         <div>
                           <div className="px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-ink-faint">
-                            Electoral Wards (Registration Areas)
+                            Neighborhoods &amp; Areas
                           </div>
                           {searchResults.wards.map((ward) => (
                             <button
@@ -376,7 +402,7 @@ export function NigeriaLocationPicker({
                                   pollingUnitId: "",
                                 });
                                 setQuickQuery(
-                                  `${ward.name} Ward (${ward.lga_name}, ${ward.state_name})`
+                                  `${ward.name} (${ward.lga_name}, ${ward.state_name})`
                                 );
                                 setDropdownOpen(false);
                               }}
@@ -385,7 +411,7 @@ export function NigeriaLocationPicker({
                               <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-plum-soft" />
                               <div className="min-w-0">
                                 <div className="truncate text-xs font-bold text-plum">
-                                  {ward.name} Ward
+                                  {ward.name}
                                 </div>
                                 <div className="truncate text-[11px] text-ink-soft">
                                   {ward.lga_name}, {ward.state_name}
@@ -416,15 +442,87 @@ export function NigeriaLocationPicker({
               ) : (
                 <LocateFixed className="h-4 w-4 text-brand-700" />
               )}
-              {detecting ? "Detecting..." : "Auto-detect my Ward / PU"}
+              {detecting ? "Detecting..." : "Use my location"}
             </Button>
           )}
         </div>
       )}
 
       {detectBanner && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-          {detectBanner}
+        <div
+          className={`space-y-2 rounded-xl border px-3 py-2.5 text-xs ${
+            detectConfidence === "low"
+              ? "border-amber-200 bg-amber-50 text-amber-900"
+              : "border-emerald-200 bg-emerald-50 text-emerald-900"
+          }`}
+        >
+          <div className="flex items-start gap-1.5 font-semibold">
+            {detectConfidence === "low" ? (
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+            ) : (
+              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+            )}
+            <span>{detectBanner}</span>
+          </div>
+
+          {detectWarning && (
+            <p className="text-[11px] font-normal opacity-90">{detectWarning}</p>
+          )}
+
+          {nearbyWards.length > 0 && !disabled && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] font-semibold">Near a border? Switch area:</span>
+              {nearbyWards.map((nw) => (
+                <button
+                  key={nw.id}
+                  type="button"
+                  onClick={() => {
+                    queryClient.invalidateQueries({ queryKey: ["ng-wards", nw.lga] });
+                    queryClient.invalidateQueries({ queryKey: ["ng-pus", nw.id] });
+                    onChange({
+                      stateId: nw.state_id,
+                      lgaId: nw.lga,
+                      wardId: nw.id,
+                      pollingUnitId: "",
+                    });
+                    setCandidatePus([]);
+                    setDetectWarning(`Switched to ${nw.name} (${nw.lga_name}). Pick your nearest spot below if needed.`);
+                  }}
+                  className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                    value.wardId === nw.id
+                      ? "border-brand-600 bg-brand-700 text-white"
+                      : "border-line bg-white text-plum hover:border-brand-400 hover:bg-surface-blush"
+                  }`}
+                >
+                  {nw.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {candidatePus.length > 0 && !value.pollingUnitId && !disabled && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[11px] font-semibold">Narrow down to your nearest spot:</span>
+              {candidatePus.slice(0, 5).map((pu) => (
+                <button
+                  key={pu.id}
+                  type="button"
+                  onClick={() => {
+                    onChange({
+                      stateId: pu.state_id,
+                      lgaId: pu.lga_id,
+                      wardId: pu.ward,
+                      pollingUnitId: pu.id,
+                    });
+                    setDetectWarning("");
+                  }}
+                  className="rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-[11px] font-semibold text-emerald-900 transition-colors hover:bg-emerald-100"
+                >
+                  {pu.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
       {detectError && (
@@ -433,14 +531,14 @@ export function NigeriaLocationPicker({
         </div>
       )}
 
-      {/* Cascading State (37) -> LGA (774) -> Ward -> Polling Unit */}
+      {/* Cascading State -> LGA -> Area -> Nearest Spot */}
       <div
         className={
           compact ? "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4" : "grid gap-3 sm:grid-cols-2"
         }
       >
         <div>
-          <Label htmlFor={`${idPrefix}-state`}>State (36 + FCT)</Label>
+          <Label htmlFor={`${idPrefix}-state`}>State</Label>
           <Select
             id={`${idPrefix}-state`}
             disabled={disabled}
@@ -455,7 +553,7 @@ export function NigeriaLocationPicker({
               })
             }
           >
-            <option value="">All Nigerian States</option>
+            <option value="">All States</option>
             {states?.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -465,7 +563,7 @@ export function NigeriaLocationPicker({
         </div>
 
         <div>
-          <Label htmlFor={`${idPrefix}-lga`}>LGA (All 774 LGAs)</Label>
+          <Label htmlFor={`${idPrefix}-lga`}>LGA</Label>
           <Select
             id={`${idPrefix}-lga`}
             disabled={disabled || !value.stateId}
@@ -481,7 +579,7 @@ export function NigeriaLocationPicker({
               });
             }}
           >
-            <option value="">{value.stateId ? "All LGAs in State" : "Select State first"}</option>
+            <option value="">{value.stateId ? "All LGAs" : "Select State first"}</option>
             {lgas?.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name}
@@ -491,7 +589,7 @@ export function NigeriaLocationPicker({
         </div>
 
         <div>
-          <Label htmlFor={`${idPrefix}-ward`}>Ward (Registration Area)</Label>
+          <Label htmlFor={`${idPrefix}-ward`}>Neighborhood / Area</Label>
           <Select
             id={`${idPrefix}-ward`}
             disabled={disabled || !value.lgaId}
@@ -509,8 +607,8 @@ export function NigeriaLocationPicker({
               {!value.lgaId
                 ? "Select LGA first"
                 : wards && wards.length === 0
-                  ? "No wards mapped yet — add yours below"
-                  : "All Wards in LGA"}
+                  ? "No areas listed yet — add yours below"
+                  : "All areas in LGA"}
             </option>
             {wards?.map((w) => (
               <option key={w.id} value={w.id}>
@@ -521,7 +619,7 @@ export function NigeriaLocationPicker({
         </div>
 
         <div>
-          <Label htmlFor={`${idPrefix}-pu`}>Polling Unit (Smallest Area)</Label>
+          <Label htmlFor={`${idPrefix}-pu`}>Nearest Spot (Optional)</Label>
           <Select
             id={`${idPrefix}-pu`}
             disabled={disabled || !value.wardId}
@@ -536,21 +634,21 @@ export function NigeriaLocationPicker({
           >
             <option value="">
               {!value.wardId
-                ? "Select Ward first"
+                ? "Select area first"
                 : pollingUnits && pollingUnits.length === 0
-                  ? "No polling units yet — add yours below"
-                  : "All Polling Units in Ward"}
+                  ? "No spots listed yet — add yours below"
+                  : "All spots in area"}
             </option>
             {pollingUnits?.map((pu) => (
               <option key={pu.id} value={pu.id}>
-                {pu.name} ({pu.pu_code})
+                {pu.name}
               </option>
             ))}
           </Select>
         </div>
       </div>
 
-      {/* Inline "Map My Exact Ward / Polling Unit" for organic 774-LGA coverage */}
+      {/* Inline "Add your area" for nationwide 774-LGA coverage */}
       {allowCreateNew && !disabled && value.lgaId && (
         <div className="space-y-2">
           {!showAddForm ? (
@@ -564,13 +662,13 @@ export function NigeriaLocationPicker({
               className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:underline"
             >
               <PlusCircle className="h-3.5 w-3.5" />
-              Ward or Polling Unit not listed? Add it to the map
+              Area not listed? Add it to the map
             </button>
           ) : (
             <div className="space-y-2.5 rounded-xl border border-brand-200 bg-white p-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-plum">
-                  Map your exact Ward &amp; Polling Unit in this LGA
+                  Add your neighborhood &amp; nearest landmark in this LGA
                 </span>
                 <button
                   type="button"
@@ -585,19 +683,19 @@ export function NigeriaLocationPicker({
               )}
               <div className="grid gap-2.5 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor={`${idPrefix}-custom-ward`}>Ward name</Label>
+                  <Label htmlFor={`${idPrefix}-custom-ward`}>Neighborhood / Area name</Label>
                   <Input
                     id={`${idPrefix}-custom-ward`}
-                    placeholder="e.g. Idi-Araba Ward"
+                    placeholder="e.g. Idi-Araba"
                     value={customWardName}
                     onChange={(e) => setCustomWardName(e.target.value)}
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`${idPrefix}-custom-pu`}>Polling Unit / nearest junction</Label>
+                  <Label htmlFor={`${idPrefix}-custom-pu`}>Nearest landmark or junction</Label>
                   <Input
                     id={`${idPrefix}-custom-pu`}
-                    placeholder="e.g. LUTH Main Gate Open Space"
+                    placeholder="e.g. LUTH Main Gate"
                     value={customPuName}
                     onChange={(e) => setCustomPuName(e.target.value)}
                   />
@@ -619,7 +717,7 @@ export function NigeriaLocationPicker({
                   disabled={ensureMutation.isPending || customWardName.trim().length < 2}
                   onClick={() => ensureMutation.mutate()}
                 >
-                  {ensureMutation.isPending ? "Saving..." : "Pin Ward / Polling Unit"}
+                  {ensureMutation.isPending ? "Saving..." : "Save location"}
                 </Button>
               </div>
             </div>
@@ -634,6 +732,10 @@ export function NigeriaLocationPicker({
             onClick={() => {
               setQuickQuery("");
               setDetectBanner("");
+              setDetectWarning("");
+              setDetectConfidence("");
+              setNearbyWards([]);
+              setCandidatePus([]);
               onChange({ stateId: "", lgaId: "", wardId: "", pollingUnitId: "" });
             }}
             className="text-xs font-semibold text-brand-700 hover:underline"

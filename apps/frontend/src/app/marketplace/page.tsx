@@ -277,13 +277,13 @@ function MarketplaceContent() {
           <div>
             <div className="mezer-eyebrow">
               <Navigation className="h-3.5 w-3.5 shrink-0" />
-              All 37 States · 774 LGAs · Nigerian Wards &amp; Polling Units
+              Nationwide Coverage · All 36 States, FCT &amp; 774 LGAs
             </div>
             <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-plum sm:text-4xl">
               Find Verified Artisans in Your Area
             </h1>
             <p className="mt-1.5 max-w-2xl text-sm text-ink-soft sm:text-base">
-              Select your Ward or Polling Unit to browse local tradespeople and workshops nearby.
+              Pick your neighborhood to browse local tradespeople and workshops nearby.
               Book on-site services or purchase handcrafted goods directly.
             </p>
           </div>
@@ -324,7 +324,7 @@ function MarketplaceContent() {
                 <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-plum">
                     <MapPin className="h-3.5 w-3.5 text-brand-700" />
-                    Search Nearby by Nigerian Ward / Polling Unit
+                    Filter by Your Location
                   </span>
                   <div className="flex flex-wrap items-center gap-4 text-xs font-semibold text-ink-soft">
                     {hasLocationFilter && (
@@ -335,7 +335,7 @@ function MarketplaceContent() {
                           checked={exactOnly}
                           onChange={(e) => setExactOnly(e.target.checked)}
                         />
-                        Exact Ward / PU only
+                        Exact area only
                       </label>
                     )}
                     <label className="inline-flex cursor-pointer items-center gap-1.5">
@@ -403,7 +403,7 @@ function MarketplaceContent() {
 
             {hasLocationFilter && (
               <span className="text-xs font-semibold text-brand-700">
-                Ranked closest first: Polling Unit → Ward → Coverage Ward → LGA
+                Sorted closest to your area first
               </span>
             )}
           </div>
@@ -580,13 +580,13 @@ function MarketplaceContent() {
                     No artisans found in this area yet
                   </h2>
                   <p className="mx-auto mt-1 max-w-md text-sm text-ink-soft">
-                    Try unchecking &ldquo;Exact Ward / PU only&rdquo; to expand to nearby Wards in
+                    Try unchecking &ldquo;Exact area only&rdquo; to expand to nearby neighborhoods in
                     the same LGA, or register your own artisan business here.
                   </p>
                   <div className="mt-4 flex justify-center gap-2">
                     {exactOnly && (
                       <Button size="sm" variant="outline" onClick={() => setExactOnly(false)}>
-                        Include nearby wards
+                        Include nearby areas
                       </Button>
                     )}
                     <Link href="/register">
@@ -687,15 +687,19 @@ function MarketplaceContent() {
                               {art.polling_unit_name ? (
                                 <>
                                   <div className="font-bold leading-snug">
-                                    PU: {art.polling_unit_name}
+                                    {art.polling_unit_name}
                                   </div>
                                   <div className="text-[11px] text-ink-soft">
-                                    Ward: {art.ward_name} · {art.lga_name}, {art.state_name}
+                                    {[art.ward_name, art.lga_name, art.state_name]
+                                      .filter(Boolean)
+                                      .join(" · ")}
                                   </div>
                                 </>
                               ) : art.ward_name ? (
                                 <div className="font-semibold">
-                                  Ward: {art.ward_name} · {art.lga_name}, {art.state_name}
+                                  {[art.ward_name, art.lga_name, art.state_name]
+                                    .filter(Boolean)
+                                    .join(" · ")}
                                 </div>
                               ) : (
                                 <div className="font-semibold">

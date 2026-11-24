@@ -591,7 +591,7 @@ export default function SettingsPage() {
               <div className="space-y-3 rounded-mezer-sm border border-line bg-surface p-4">
                 <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-plum">
                   <MapPin className="h-3.5 w-3.5 text-brand-700" />
-                  Hyper-Local Nigerian Location (State → LGA → Ward → Polling Unit)
+                  Workshop Location
                 </div>
                 <NigeriaLocationPicker
                   value={location}
@@ -614,7 +614,7 @@ export default function SettingsPage() {
 
                 {stateWards && stateWards.length > 0 && (
                   <div>
-                    <Label>Extra Wards you cover for on-site work (optional)</Label>
+                    <Label>Extra nearby areas you cover for on-site work (optional)</Label>
                     <div className="mt-2 flex max-h-36 flex-wrap gap-2 overflow-y-auto rounded-xl border border-line-soft bg-white p-2.5">
                       {stateWards
                         .filter((w) => w.id !== location.wardId)

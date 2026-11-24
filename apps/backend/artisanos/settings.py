@@ -246,3 +246,17 @@ FEATURE_CAMERA_MEASUREMENTS = env_bool("FEATURE_CAMERA_MEASUREMENTS", False)
 
 # Paystack webhook verification secret (leave blank until live keys are configured)
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+
+# Standardized Nigerian Location, Electoral Ward & Polling Unit Detection
+# Primary Ward Boundary Engine: Official GRID3 Nigeria Operational Wards v4.0 (Free, no API key, true Point-in-Polygon)
+LOCATION_EXTERNAL_LOOKUP_ENABLED = env_bool("LOCATION_EXTERNAL_LOOKUP_ENABLED", True)
+GRID3_WARD_API_URL = os.getenv(
+    "GRID3_WARD_API_URL",
+    "https://services3.arcgis.com/BU6Aadhn6tbBEdyk/arcgis/rest/services/GRID3_NGA_operational_wards_v4_0/FeatureServer/0/query",
+)
+GRID3_API_TIMEOUT_SECONDS = float(os.getenv("GRID3_API_TIMEOUT_SECONDS", "4.0"))
+# Optional Google Maps Geocoding API key for high-accuracy street/landmark & State/LGA enrichment
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "").strip()
+# Free OpenStreetMap Nominatim fallback (used strictly for landmark / State / LGA, never to invent Wards)
+NOMINATIM_API_URL = os.getenv("NOMINATIM_API_URL", "https://nominatim.openstreetmap.org/reverse")
+LOCATION_GEOCODE_TIMEOUT_SECONDS = float(os.getenv("LOCATION_GEOCODE_TIMEOUT_SECONDS", "3.0"))

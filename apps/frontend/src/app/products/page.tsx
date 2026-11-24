@@ -269,7 +269,7 @@ export default function ProductsPage() {
                 · {storefront?.is_published ? "Published" : "Unpublished"}
                 {storefront?.ward_name
                   ? ` · Pinned to ${storefront.ward_name}${storefront.polling_unit_name ? ` (${storefront.polling_unit_name})` : ""}`
-                  : " · Pin your Ward & Polling Unit in Workspace Settings to appear in nearby searches"}
+                  : " · Pin your location in Workspace Settings to appear in nearby searches"}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -788,8 +788,8 @@ export default function ProductsPage() {
                     No work call-outs or inquiries yet
                   </h2>
                   <p className="mt-1 text-sm text-ink-soft">
-                    Share your public storefront link ({publicStorePath}) or pin your Nigerian Ward
-                    &amp; Polling Unit in Settings so nearby customers can call you for work.
+                    Share your public storefront link ({publicStorePath}) or pin your workshop
+                    location in Settings so nearby customers can call you for work.
                   </p>
                 </CardContent>
               ) : (
@@ -843,10 +843,8 @@ export default function ProductsPage() {
                               <MapPin className="h-3.5 w-3.5 text-brand-600" />
                               {[
                                 inq.customer_address,
-                                inq.customer_polling_unit_name
-                                  ? `PU: ${inq.customer_polling_unit_name}`
-                                  : "",
-                                inq.customer_ward_name ? `Ward: ${inq.customer_ward_name}` : "",
+                                inq.customer_polling_unit_name || "",
+                                inq.customer_ward_name || "",
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}

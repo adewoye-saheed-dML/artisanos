@@ -16,6 +16,7 @@ from django.db import transaction
 
 from .models import NigerianLGA, NigerianState, NigerianWard, PollingUnit
 from .seed import seed_nigeria_locations
+from .services import is_within_nigeria_bounds
 
 # Authoritative open-source INEC dataset URLs (complete 176,846 polling units + geo coordinates)
 DEFAULT_INEC_COMPLETE_CSV_URLS = [
@@ -173,6 +174,10 @@ def import_inec_csv_stream(
         lga_code_raw = _pick_col(row, ["lg_code", "lga_code"])
         lat = _parse_decimal(_pick_col(row, ["latitude", "location.latitude", "lat"]))
         lng = _parse_decimal(_pick_col(row, ["longitude", "location.longitude", "lng", "lon"]))
+        if lat is not None and lng is not None and not is_within_nigeria_bounds(lat, lng):
+            # Reject bad/mis-geocoded coordinates outside Nigeria (common in crowdsourced CSVs)
+            lat = None
+            lng = None
 
         state = states_by_norm.get(_norm_key(state_raw))
         if not state or not lga_raw or not ward_raw or not pu_name_raw:
@@ -242,7 +247,12 @@ def import_inec_csv_stream(
     wards_created = 0
     if new_ward_specs and not enrich_coordinates_only:
         ward_objs = [
-            NigerianWard(lga=lga, name=name, code=code)
+            NigerianWard(
+                lga=lga,
+                name=name,
+                code=code,
+                data_source=NigerianWard.DataSource.INEC,
+            )
             for lga, name, code in new_ward_specs.values()
         ]
         with transaction.atomic():
@@ -301,6 +311,7 @@ def import_inec_csv_stream(
                 landmark=f"{ward.name}, {lga.name}",
                 latitude=item["lat"],
                 longitude=item["lng"],
+                data_source=PollingUnit.DataSource.INEC,
             )
         )
 

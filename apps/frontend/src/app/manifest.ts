@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ArtisanOS — Nigeria's All-Artisan Nearby Marketplace & Business OS",
     short_name: "ArtisanOS",
     description:
-      "Find nearby artisans by Nigerian Ward or Polling Unit, call for work, patronize goods & services, and manage artisan workshops.",
+      "Find nearby verified artisans in your neighborhood, book services, patronize local goods, and manage artisan workshops across Nigeria.",
     start_url: "/marketplace",
     display: "standalone",
     background_color: "#fffbfc",

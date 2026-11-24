@@ -60,6 +60,7 @@ export interface NigerianWard {
   state_name: string;
   name: string;
   code: string;
+  data_source?: "inec" | "grid3" | "seed" | "community";
 }
 
 export interface PollingUnit {
@@ -75,6 +76,7 @@ export interface PollingUnit {
   landmark: string;
   latitude: string | null;
   longitude: string | null;
+  data_source?: "inec" | "grid3" | "seed" | "community";
 }
 
 export interface LocationSearchResponse {
@@ -89,8 +91,14 @@ export interface LocationResolvedResponse {
   polling_unit: PollingUnit | null;
   landmark: string;
   match_source: string;
+  provider?: string;
+  confidence?: "high" | "medium" | "low";
+  accuracy_meters?: number | null;
   distance_km: number | null;
   nearby_artisan_count: number;
+  nearby_wards?: NigerianWard[];
+  candidate_polling_units?: PollingUnit[];
+  warning?: string;
 }
 
 export interface Organization {
